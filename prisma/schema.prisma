@@ -1,0 +1,85 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Platform {
+  WINDOWS
+  MACOS
+  LINUX
+}
+
+enum ApiProvider {
+  NVIDIA_NIM
+  GOOGLE_GEMINI
+  OPENAI
+  ANTHROPIC
+  GROQ
+  LOCAL_OLLAMA
+}
+
+model User {
+  id              String      @id @default(cuid())
+  email           String      @unique
+  name            String?
+  passwordHash    String      @default("$2a$10$obhinDefaultPasswordHash")
+  role            Role        @default(USER)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  apiKeys         UserApiKey[]
+  downloadLogs    DownloadLog[]
+}
+
+model TeamMember {
+  id          String   @id @default(cuid())
+  order       Int      @unique // 1, 2, or 3
+  name        String
+  roleTitle   String
+  bio         String   @db.Text
+  imageUrl    String   @db.Text
+  githubUrl   String?
+  linkedinUrl String?
+  twitterUrl  String?
+  updatedAt   DateTime @updatedAt
+}
+
+model UserApiKey {
+  id           String      @id @default(cuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider     ApiProvider
+  label        String?
+  encryptedKey String
+  iv           String
+  authTag      String
+  baseUrl      String?
+  isActive     Boolean     @default(true)
+  isDefault    Boolean     @default(false)
+  lastTestedAt DateTime?
+  latencyMs    Int?
+  createdAt    DateTime    @default(now())
+
+  @@index([userId, provider])
+}
+
+model DownloadLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  platform     Platform
+  version      String   @default("4.0.0-PROD")
+  ipAddress    String?
+  downloadedAt DateTime @default(now())
+
+  @@index([platform, downloadedAt])
+}
