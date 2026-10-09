@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
-import { prisma, mockStore } from '@/lib/prisma';
+import { prisma, mockStore, hasDb } from '@/lib/prisma';
 import type { Platform } from '@prisma/client';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
@@ -15,12 +17,16 @@ export async function POST(req: Request) {
 
     let logged;
     try {
-      logged = await prisma.downloadLog.create({
-        data: {
-          platform: validatedPlatform,
-          version: '4.0.0-PROD',
-        },
-      });
+      if (hasDb) {
+        logged = await prisma.downloadLog.create({
+          data: {
+            platform: validatedPlatform,
+            version: '4.0.0-PROD',
+          },
+        });
+      } else {
+        throw new Error('No DB');
+      }
     } catch {
       logged = {
         id: `dl-${Date.now()}`,

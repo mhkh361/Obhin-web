@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { mockStore } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export async function PATCH(req: Request) {
   try {
     const { skillId, isEnabled } = await req.json();

@@ -5,6 +5,12 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
+export const hasDb = Boolean(
+  process.env.DATABASE_URL &&
+  !process.env.DATABASE_URL.includes('localhost') &&
+  !process.env.DATABASE_URL.includes('127.0.0.1')
+);
+
 export const prisma =
   global.prisma ||
   new PrismaClient({
@@ -44,7 +50,7 @@ export interface MockKeyData {
   createdAt: string;
 }
 
-// In-memory fallback repository for instant local exploration if DB is unmigrated
+// In-memory fallback repository for instant local & serverless exploration
 export const mockStore = {
   teamMembers: [
     {
@@ -94,6 +100,8 @@ export const mockStore = {
       iv: 'a1b2c3d4',
       authTag: 'e5f6',
       baseUrl: 'https://integrate.api.nvidia.com/v1',
+      isActive: true,
+      isDefault: true,
       createdAt: new Date().toISOString(),
     },
     {
@@ -105,6 +113,8 @@ export const mockStore = {
       iv: 'd4c3b2a1',
       authTag: '6f5e',
       baseUrl: '',
+      isActive: true,
+      isDefault: false,
       createdAt: new Date().toISOString(),
     },
     {

@@ -1,31 +1,35 @@
 import { NextResponse } from 'next/server';
-import { prisma, mockStore } from '@/lib/prisma';
+import { prisma, mockStore, hasDb } from '@/lib/prisma';
 import { encryptKey, maskKey } from '@/lib/crypto';
 import { testProviderHandshake } from '@/lib/providers';
 import type { ApiProvider } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
-    const keys = await prisma.userApiKey.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
-    
-    // Mask sensitive encrypted keys before client return
-    const safeKeys = keys.map((k) => ({
-      ...k,
-      encryptedKey: maskKey(k.encryptedKey),
-    }));
-    return NextResponse.json({ success: true, keys: safeKeys });
-  } catch {
-    // Resilient fallback to mockStore
-    return NextResponse.json({
-      success: true,
-      keys: mockStore.keys.map((k) => ({
+    if (hasDb) {
+      const keys = await prisma.userApiKey.findMany({
+        orderBy: { createdAt: 'desc' },
+      });
+      
+      const safeKeys = keys.map((k) => ({
         ...k,
         encryptedKey: maskKey(k.encryptedKey),
-      })),
-    });
+      }));
+      return NextResponse.json({ success: true, keys: safeKeys });
+    }
+  } catch {
+    // fallback
   }
+
+  return NextResponse.json({
+    success: true,
+    keys: mockStore.keys.map((k) => ({
+      ...k,
+      encryptedKey: maskKey(k.encryptedKey),
+    })),
+  });
 }
 
 export async function POST(req: Request) {
@@ -37,15 +41,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Provider and API Key are required' }, { status: 400 });
     }
 
-    // Encrypt key with AES-256-GCM
     const { encryptedKey, iv, authTag } = encryptKey(apiKey);
-
-    // Initial handshake verification
     const handshake = await testProviderHandshake(provider, apiKey, baseUrl);
 
     let createdKey;
     try {
-      // Find or create default user
+      if (!hasDb) throw new Error('No DB');
       let user = await prisma.user.findFirst();
       if (!user) {
         user = await prisma.user.create({
@@ -78,7 +79,6 @@ export async function POST(req: Request) {
         },
       });
     } catch {
-      // Fallback in-memory persistence
       createdKey = {
         id: `key-${Date.now()}`,
         userId: 'default-user',
@@ -111,4 +111,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-

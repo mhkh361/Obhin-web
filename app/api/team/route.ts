@@ -1,22 +1,24 @@
 import { NextResponse } from 'next/server';
-import { prisma, mockStore } from '@/lib/prisma';
+import { prisma, mockStore, hasDb } from '@/lib/prisma';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const members = await prisma.teamMember.findMany({
-      orderBy: { order: 'asc' },
-    });
+    if (hasDb) {
+      const members = await prisma.teamMember.findMany({
+        orderBy: { order: 'asc' },
+      });
 
-    if (members.length > 0) {
-      return NextResponse.json({ success: true, members });
+      if (members.length > 0) {
+        return NextResponse.json({ success: true, members });
+      }
     }
-
-    // If database table is empty, seed with mockStore initial 3 members
-    return NextResponse.json({ success: true, members: mockStore.teamMembers });
   } catch {
-    // Resilient fallback to mockStore
-    return NextResponse.json({ success: true, members: mockStore.teamMembers });
+    // fallback
   }
+
+  return NextResponse.json({ success: true, members: mockStore.teamMembers });
 }
 
 export async function POST(req: Request) {
@@ -32,6 +34,7 @@ export async function POST(req: Request) {
     }
 
     try {
+      if (!hasDb) throw new Error('No DB');
       const updated = await prisma.teamMember.upsert({
         where: { order: Number(order) },
         create: {
@@ -55,7 +58,6 @@ export async function POST(req: Request) {
         },
       });
 
-      // Synchronize in-memory fallback store as well
       const idx = mockStore.teamMembers.findIndex((m) => m.order === Number(order));
       if (idx !== -1) {
         mockStore.teamMembers[idx] = { ...mockStore.teamMembers[idx], ...updated };
@@ -65,7 +67,6 @@ export async function POST(req: Request) {
 
       return NextResponse.json({ success: true, member: updated });
     } catch {
-      // Direct mock update fallback
       const idx = mockStore.teamMembers.findIndex((m) => m.order === Number(order));
       const fallbackMember = {
         id: `dev-${order}`,
@@ -93,4 +94,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
-

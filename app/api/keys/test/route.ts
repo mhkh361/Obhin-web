@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { testProviderHandshake } from '@/lib/providers';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -20,4 +22,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, message }, { status: 500 });
   }
 }
-

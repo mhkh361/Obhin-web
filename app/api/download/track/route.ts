@@ -1,27 +1,33 @@
 import { NextResponse } from 'next/server';
-import { prisma, mockStore } from '@/lib/prisma';
+import { prisma, mockStore, hasDb } from '@/lib/prisma';
 import type { Platform } from '@prisma/client';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const logs = await prisma.downloadLog.findMany();
-    const stats = {
-      WINDOWS: logs.filter((l) => l.platform === 'WINDOWS').length,
-      MACOS: logs.filter((l) => l.platform === 'MACOS').length,
-      LINUX: logs.filter((l) => l.platform === 'LINUX').length,
-      total: logs.length,
-    };
-    return NextResponse.json({ success: true, stats, recentLogs: logs.slice(-20) });
+    if (hasDb) {
+      const logs = await prisma.downloadLog.findMany();
+      const stats = {
+        WINDOWS: logs.filter((l) => l.platform === 'WINDOWS').length,
+        MACOS: logs.filter((l) => l.platform === 'MACOS').length,
+        LINUX: logs.filter((l) => l.platform === 'LINUX').length,
+        total: logs.length,
+      };
+      return NextResponse.json({ success: true, stats, recentLogs: logs.slice(-20) });
+    }
   } catch {
-    const win = mockStore.downloads.filter((d) => d.platform === 'WINDOWS').length;
-    const mac = mockStore.downloads.filter((d) => d.platform === 'MACOS').length;
-    const linux = mockStore.downloads.filter((d) => d.platform === 'LINUX').length;
-    return NextResponse.json({
-      success: true,
-      stats: { WINDOWS: win, MACOS: mac, LINUX: linux, total: win + mac + linux },
-      recentLogs: mockStore.downloads,
-    });
+    // fall through to mockStore
   }
+
+  const win = mockStore.downloads.filter((d) => d.platform === 'WINDOWS').length;
+  const mac = mockStore.downloads.filter((d) => d.platform === 'MACOS').length;
+  const linux = mockStore.downloads.filter((d) => d.platform === 'LINUX').length;
+  return NextResponse.json({
+    success: true,
+    stats: { WINDOWS: win, MACOS: mac, LINUX: linux, total: win + mac + linux },
+    recentLogs: mockStore.downloads,
+  });
 }
 
 export async function POST(req: Request) {
@@ -39,12 +45,16 @@ export async function POST(req: Request) {
 
     let createdLog;
     try {
-      createdLog = await prisma.downloadLog.create({
-        data: {
-          platform: validatedPlatform,
-          version: '4.0.0-PROD',
-        },
-      });
+      if (hasDb) {
+        createdLog = await prisma.downloadLog.create({
+          data: {
+            platform: validatedPlatform,
+            version: '4.0.0-PROD',
+          },
+        });
+      } else {
+        throw new Error('No cloud DB connected yet');
+      }
     } catch {
       createdLog = {
         id: `dl-${Date.now()}`,
@@ -67,4 +77,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
-
