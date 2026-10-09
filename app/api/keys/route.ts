@@ -1,28 +1,11 @@
 import { NextResponse } from 'next/server';
-import { prisma, mockStore, hasDb } from '@/lib/prisma';
+import { mockStore } from '@/lib/prisma';
 import { encryptKey, maskKey } from '@/lib/crypto';
 import { testProviderHandshake } from '@/lib/providers';
-import type { ApiProvider } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  try {
-    if (hasDb) {
-      const keys = await prisma.userApiKey.findMany({
-        orderBy: { createdAt: 'desc' },
-      });
-      
-      const safeKeys = keys.map((k) => ({
-        ...k,
-        encryptedKey: maskKey(k.encryptedKey),
-      }));
-      return NextResponse.json({ success: true, keys: safeKeys });
-    }
-  } catch {
-    // fallback
-  }
-
   return NextResponse.json({
     success: true,
     keys: mockStore.keys.map((k) => ({
@@ -44,59 +27,23 @@ export async function POST(req: Request) {
     const { encryptedKey, iv, authTag } = encryptKey(apiKey);
     const handshake = await testProviderHandshake(provider, apiKey, baseUrl);
 
-    let createdKey;
-    try {
-      if (!hasDb) throw new Error('No DB');
-      let user = await prisma.user.findFirst();
-      if (!user) {
-        user = await prisma.user.create({
-          data: {
-            email: 'builder@obhin.ai',
-            name: 'OBHIN Developer',
-          },
-        });
-      }
+    const createdKey = {
+      id: `key-${Date.now()}`,
+      userId: 'client-local-user',
+      provider,
+      label: label || `${provider} Key`,
+      encryptedKey,
+      iv,
+      authTag,
+      baseUrl: baseUrl || null,
+      isActive: true,
+      isDefault: Boolean(isDefault),
+      lastTestedAt: new Date().toISOString(),
+      latencyMs: handshake.latencyMs,
+      createdAt: new Date().toISOString(),
+    };
 
-      if (isDefault) {
-        await prisma.userApiKey.updateMany({
-          where: { userId: user.id },
-          data: { isDefault: false },
-        });
-      }
-
-      createdKey = await prisma.userApiKey.create({
-        data: {
-          userId: user.id,
-          provider: provider as ApiProvider,
-          label: label || `${provider} Key`,
-          encryptedKey,
-          iv,
-          authTag,
-          baseUrl: baseUrl || null,
-          isDefault: Boolean(isDefault),
-          lastTestedAt: new Date(),
-          latencyMs: handshake.latencyMs,
-        },
-      });
-    } catch {
-      createdKey = {
-        id: `key-${Date.now()}`,
-        userId: 'default-user',
-        provider,
-        label: label || `${provider} Key`,
-        encryptedKey,
-        iv,
-        authTag,
-        baseUrl: baseUrl || null,
-        isActive: true,
-        isDefault: Boolean(isDefault),
-        lastTestedAt: new Date().toISOString(),
-        latencyMs: handshake.latencyMs,
-        createdAt: new Date().toISOString(),
-      };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      mockStore.keys.unshift(createdKey as any);
-    }
+    mockStore.keys.unshift(createdKey);
 
     return NextResponse.json({
       success: true,

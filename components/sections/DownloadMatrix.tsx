@@ -3,15 +3,13 @@
 import React, { useState } from 'react';
 import {
   Download,
-  Monitor,
-  Apple,
-  Terminal,
   CheckCircle2,
-  HardDrive,
-  Cpu,
   FileCode,
   Shield,
+  Info,
+  ExternalLink,
 } from 'lucide-react';
+import { WindowsVector, AppleVector, LinuxVector } from '@/components/ui/OsVectorIcons';
 
 interface PlatformOption {
   id: string;
@@ -20,6 +18,8 @@ interface PlatformOption {
   version: string;
   formats: { label: string; arch: string; ext: string }[];
   tag: string;
+  executionNote: string;
+  commandSnippet?: string;
 }
 
 export function DownloadMatrix() {
@@ -30,29 +30,32 @@ export function DownloadMatrix() {
     {
       id: 'WINDOWS',
       name: 'Windows',
-      icon: <Monitor className="w-8 h-8 text-white" />,
+      icon: <WindowsVector className="w-8 h-8 text-white" />,
       version: 'v4.0.0-PROD (x64 / ARM64)',
       formats: [
         { label: 'Installer (.exe)', arch: 'x64', ext: 'exe' },
         { label: 'Enterprise MSI (.msi)', arch: 'x64', ext: 'msi' },
       ],
       tag: 'Windows 10 / 11 Supported',
+      executionNote: 'Windows SmartScreen notice: Click "More info" > "Run anyway" for community open-source binary.',
     },
     {
       id: 'MACOS',
       name: 'macOS',
-      icon: <Apple className="w-8 h-8 text-white" />,
+      icon: <AppleVector className="w-8 h-8 text-white" />,
       version: 'v4.0.0-PROD (Universal)',
       formats: [
         { label: 'Apple Silicon (.dmg)', arch: 'arm64', ext: 'dmg' },
         { label: 'Intel Core (.dmg)', arch: 'x64', ext: 'dmg' },
       ],
       tag: 'macOS 12+ Ventura & Sonoma',
+      executionNote: 'Gatekeeper unverified developer notice: Right-click app > Open, or run command below:',
+      commandSnippet: 'xattr -cr /Applications/OBHIN.app',
     },
     {
       id: 'LINUX',
       name: 'Linux',
-      icon: <Terminal className="w-8 h-8 text-white" />,
+      icon: <LinuxVector className="w-8 h-8 text-white" />,
       version: 'v4.0.0-PROD (AppImage / DEB)',
       formats: [
         { label: 'Universal AppImage', arch: 'x86_64', ext: 'AppImage' },
@@ -60,6 +63,8 @@ export function DownloadMatrix() {
         { label: 'Arch / Tarball (.tar.gz)', arch: 'x86_64', ext: 'tar.gz' },
       ],
       tag: 'Glibc 2.31+ & Wayland/X11',
+      executionNote: 'Execution permissions: Enable execute bit or install package:',
+      commandSnippet: 'chmod +x OBHIN.AppImage',
     },
   ];
 
@@ -76,7 +81,11 @@ export function DownloadMatrix() {
         }),
       });
       const data = await res.json();
-      setDownloadSuccess(`Initiating download for ${label}... Telemetry event recorded!`);
+      setDownloadSuccess(`Initiating download for ${label}...`);
+
+      if (data.downloadUrl) {
+        window.location.href = data.downloadUrl;
+      }
 
       setTimeout(() => {
         setDownloadingPlatform(null);
@@ -102,10 +111,10 @@ export function DownloadMatrix() {
             </span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mt-1">
-            Download OBHIN Desktop Runtime
+            Universal Desktop Binaries
           </h2>
           <p className="text-sm text-zinc-400 mt-1 max-w-2xl font-light">
-            Native, high-performance desktop clients for Windows, macOS, and Linux. Built directly with local execution capabilities and air-gapped provider support.
+            Native, high-performance desktop clients for Windows, macOS, and Linux. Built with zero cloud telemetry and air-gapped local model execution.
           </p>
         </div>
 
@@ -126,7 +135,7 @@ export function DownloadMatrix() {
         {platforms.map((p) => (
           <div
             key={p.id}
-            className="prism-glass p-6 rounded-2xl flex flex-col justify-between space-y-6"
+            className="prism-glass p-6 rounded-2xl flex flex-col justify-between space-y-6 hover:border-white/40 transition-all duration-300"
           >
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -143,42 +152,69 @@ export function DownloadMatrix() {
                 <p className="text-xs font-mono text-zinc-400 mt-0.5">{p.version}</p>
               </div>
 
-              <div className="space-y-2 pt-2">
-                {p.formats.map((fmt) => {
-                  return (
-                    <button
-                      key={fmt.label}
-                      onClick={() => handleDownload(p.id, fmt.arch, fmt.label)}
-                      disabled={Boolean(downloadingPlatform)}
-                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-zinc-950/80 hover:bg-zinc-900 border border-white/10 hover:border-white/30 text-left transition-all duration-200 group/btn"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <FileCode className="w-4 h-4 text-zinc-400 group-hover/btn:text-white transition-colors" />
-                        <div>
-                          <div className="text-xs font-semibold text-zinc-200">
-                            {fmt.label}
-                          </div>
-                          <div className="text-[10px] font-mono text-zinc-400">
-                            Arch: {fmt.arch}
-                          </div>
+              {/* Formats Button List */}
+              <div className="space-y-2 pt-1">
+                {p.formats.map((fmt) => (
+                  <button
+                    key={fmt.label}
+                    onClick={() => handleDownload(p.id, fmt.arch, fmt.label)}
+                    disabled={Boolean(downloadingPlatform)}
+                    className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-zinc-950/80 hover:bg-zinc-900 border border-white/10 hover:border-white/30 text-left transition-all duration-200 group/btn"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <FileCode className="w-4 h-4 text-zinc-400 group-hover/btn:text-white transition-colors" />
+                      <div>
+                        <div className="text-xs font-semibold text-zinc-200">
+                          {fmt.label}
+                        </div>
+                        <div className="text-[10px] font-mono text-zinc-400">
+                          Arch: {fmt.arch}
                         </div>
                       </div>
+                    </div>
 
-                      <div className="p-1 rounded-lg bg-zinc-900 text-zinc-400 group-hover/btn:text-white group-hover/btn:bg-white/10 transition-all">
-                        <Download className="w-3.5 h-3.5" />
-                      </div>
-                    </button>
-                  );
-                })}
+                    <div className="p-1 rounded-lg bg-zinc-900 text-zinc-400 group-hover/btn:text-white group-hover/btn:bg-white/10 transition-all">
+                      <Download className="w-3.5 h-3.5" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Universal Desktop Binary Guidance Note */}
+              <div className="p-3 rounded-xl bg-zinc-950/60 border border-white/10 space-y-1.5">
+                <div className="text-[11px] font-mono text-zinc-300 flex items-center gap-1.5">
+                  <Info className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                  <span>Execution Guidance:</span>
+                </div>
+                <p className="text-[11px] text-zinc-400 font-light leading-relaxed">
+                  {p.executionNote}
+                </p>
+                {p.commandSnippet && (
+                  <div className="bg-black border border-white/15 px-2.5 py-1 rounded-md text-[10px] font-mono text-zinc-300 select-all">
+                    $ {p.commandSnippet}
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="pt-4 border-t border-white/10 text-[11px] font-mono text-zinc-400 flex items-center justify-between">
               <span>Automatic Updates: Enabled</span>
-              <span className="text-white font-semibold">FOSS 100%</span>
+              <span className="text-white font-semibold">100% FOSS</span>
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="text-center pt-2">
+        <a
+          href="https://github.com/mhkh361/Obhin-web/releases"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 text-xs font-mono text-zinc-400 hover:text-white underline transition-colors"
+        >
+          <span>View all releases, architectures & SHA256 checksums on GitHub</span>
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
       </div>
     </section>
   );

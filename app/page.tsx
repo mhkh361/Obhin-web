@@ -5,6 +5,7 @@ import { SkillSwitchGrid } from '@/components/hub/SkillSwitchGrid';
 import { ApiKeyManager } from '@/components/hub/ApiKeyManager';
 import { DownloadMatrix } from '@/components/sections/DownloadMatrix';
 import { TeamSection } from '@/components/sections/TeamSection';
+import { PrivacySection } from '@/components/sections/PrivacySection';
 
 export default function HomePage() {
   return (
@@ -28,6 +29,9 @@ export default function HomePage() {
 
         {/* [05] The Engineers (Dynamic Team Showcase) */}
         <TeamSection />
+
+        {/* [06] Privacy & Trust Protocol (Zero-PII Declaration) */}
+        <PrivacySection />
       </div>
     </div>
   );

@@ -1,32 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma, mockStore, hasDb } from '@/lib/prisma';
-import type { Platform } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  try {
-    if (hasDb) {
-      const logs = await prisma.downloadLog.findMany();
-      const stats = {
-        WINDOWS: logs.filter((l) => l.platform === 'WINDOWS').length,
-        MACOS: logs.filter((l) => l.platform === 'MACOS').length,
-        LINUX: logs.filter((l) => l.platform === 'LINUX').length,
-        total: logs.length,
-      };
-      return NextResponse.json({ success: true, stats, recentLogs: logs.slice(-20) });
-    }
-  } catch {
-    // fall through to mockStore
-  }
-
-  const win = mockStore.downloads.filter((d) => d.platform === 'WINDOWS').length;
-  const mac = mockStore.downloads.filter((d) => d.platform === 'MACOS').length;
-  const linux = mockStore.downloads.filter((d) => d.platform === 'LINUX').length;
+  const s = mockStore.traffic;
   return NextResponse.json({
     success: true,
-    stats: { WINDOWS: win, MACOS: mac, LINUX: linux, total: win + mac + linux },
-    recentLogs: mockStore.downloads,
+    stats: {
+      WINDOWS: s.windowsDownloads,
+      MACOS: s.macDownloads,
+      LINUX: s.linuxDownloads,
+      total: s.windowsDownloads + s.macDownloads + s.linuxDownloads,
+    },
   });
 }
 
@@ -34,46 +20,48 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { platform } = body;
+    const plat = (platform || 'WINDOWS').toUpperCase();
 
-    const validatedPlatform = (
-      platform?.toUpperCase() === 'MACOS'
-        ? 'MACOS'
-        : platform?.toUpperCase() === 'LINUX'
-        ? 'LINUX'
-        : 'WINDOWS'
-    ) as Platform;
+    if (plat === 'MACOS') {
+      mockStore.traffic.macDownloads += 1;
+    } else if (plat === 'LINUX') {
+      mockStore.traffic.linuxDownloads += 1;
+    } else {
+      mockStore.traffic.windowsDownloads += 1;
+    }
 
-    let createdLog;
     try {
-      if (hasDb) {
-        createdLog = await prisma.downloadLog.create({
-          data: {
-            platform: validatedPlatform,
-            version: '4.0.0-PROD',
+      if (hasDb && prisma) {
+        await prisma.trafficAnalytics.upsert({
+          where: { id: 'global-traffic' },
+          create: {
+            id: 'global-traffic',
+            windowsDownloads: plat === 'WINDOWS' ? 1 : 0,
+            macDownloads: plat === 'MACOS' ? 1 : 0,
+            linuxDownloads: plat === 'LINUX' ? 1 : 0,
+          },
+          update: {
+            windowsDownloads: plat === 'WINDOWS' ? { increment: 1 } : undefined,
+            macDownloads: plat === 'MACOS' ? { increment: 1 } : undefined,
+            linuxDownloads: plat === 'LINUX' ? { increment: 1 } : undefined,
           },
         });
-      } else {
-        throw new Error('No cloud DB connected yet');
       }
     } catch {
-      createdLog = {
-        id: `dl-${Date.now()}`,
-        platform: validatedPlatform,
-        version: '4.0.0-PROD',
-        downloadedAt: new Date().toISOString(),
-      };
-      mockStore.downloads.push(createdLog);
+      // fallback
     }
+
+    const downloadUrl = `https://github.com/mhkh361/Obhin-web/releases/download/v4.0.0/obhin-v4.0.0-${plat.toLowerCase()}.${
+      plat === 'WINDOWS' ? 'exe' : plat === 'MACOS' ? 'dmg' : 'AppImage'
+    }`;
 
     return NextResponse.json({
       success: true,
-      downloadUrl: `https://github.com/obhin-ai/obhin/releases/download/v4.0.0/obhin-v4.0.0-${validatedPlatform.toLowerCase()}.${
-        validatedPlatform === 'WINDOWS' ? 'exe' : validatedPlatform === 'MACOS' ? 'dmg' : 'AppImage'
-      }`,
-      log: createdLog,
+      downloadUrl,
+      platform: plat,
     });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Error logging download';
+    const msg = err instanceof Error ? err.message : 'Error tracking download';
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

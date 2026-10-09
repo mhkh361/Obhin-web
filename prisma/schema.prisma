@@ -7,39 +7,45 @@ generator client {
   provider = "prisma-client-js"
 }
 
-enum Role {
-  USER
-  ADMIN
+// PRD v1.4.0 Zero-PII Aggregated Counters: No User accounts, emails, passwords, or IP addresses
+model TrafficAnalytics {
+  id               String   @id @default("global-traffic")
+  totalPageViews   Int      @default(0)
+  windowsDownloads Int      @default(0)
+  macDownloads     Int      @default(0)
+  linuxDownloads   Int      @default(0)
+  updatedAt        DateTime @updatedAt
 }
 
-enum Platform {
-  WINDOWS
-  MACOS
-  LINUX
+// PRD v1.4.0 Skill Ecosystem Item with Open-Source Creator Attribution
+model SkillItem {
+  id            String   @id @default(cuid())
+  order         Int      @default(1)
+  title         String
+  description   String   @db.Text
+  category      String   @default("Tool") // Coding, Vision, Tool, Productivity
+  githubRepoUrl String?  // Source repository link
+  creatorName   String?  // Original author handle/name
+  creatorUrl    String?  // Creator profile link
+  isLive        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
-enum ApiProvider {
-  NVIDIA_NIM
-  GOOGLE_GEMINI
-  OPENAI
-  ANTHROPIC
-  GROQ
-  LOCAL_OLLAMA
+// Dynamic Multi-LLM API Hub Providers
+model ApiProviderItem {
+  id          String   @id @default(cuid())
+  providerKey String   @unique // GEMINI, NVIDIA, DEEPSEEK, OLLAMA, GROQ, OPENAI
+  name        String
+  tag         String   @default("Ready")
+  description String   @db.Text
+  defaultUrl  String?
+  isVisible   Boolean  @default(true)
+  order       Int      @default(1)
+  updatedAt   DateTime @updatedAt
 }
 
-model User {
-  id              String      @id @default(cuid())
-  email           String      @unique
-  name            String?
-  passwordHash    String      @default("$2a$10$obhinDefaultPasswordHash")
-  role            Role        @default(USER)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-
-  apiKeys         UserApiKey[]
-  downloadLogs    DownloadLog[]
-}
-
+// Dynamic Team Showcase
 model TeamMember {
   id          String   @id @default(cuid())
   order       Int      @unique // 1, 2, or 3
@@ -51,35 +57,4 @@ model TeamMember {
   linkedinUrl String?
   twitterUrl  String?
   updatedAt   DateTime @updatedAt
-}
-
-model UserApiKey {
-  id           String      @id @default(cuid())
-  userId       String
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provider     ApiProvider
-  label        String?
-  encryptedKey String
-  iv           String
-  authTag      String
-  baseUrl      String?
-  isActive     Boolean     @default(true)
-  isDefault    Boolean     @default(false)
-  lastTestedAt DateTime?
-  latencyMs    Int?
-  createdAt    DateTime    @default(now())
-
-  @@index([userId, provider])
-}
-
-model DownloadLog {
-  id           String   @id @default(cuid())
-  userId       String?
-  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  platform     Platform
-  version      String   @default("4.0.0-PROD")
-  ipAddress    String?
-  downloadedAt DateTime @default(now())
-
-  @@index([platform, downloadedAt])
 }

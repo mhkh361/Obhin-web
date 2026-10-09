@@ -1,51 +1,25 @@
 import { NextResponse } from 'next/server';
-import { prisma, mockStore, hasDb } from '@/lib/prisma';
-import type { Platform } from '@prisma/client';
+import { mockStore } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
-    const { platform } = await req.json();
-    const validatedPlatform = (
-      platform?.toUpperCase() === 'MACOS'
-        ? 'MACOS'
-        : platform?.toUpperCase() === 'LINUX'
-        ? 'LINUX'
-        : 'WINDOWS'
-    ) as Platform;
+    const { platform } = await req.json().catch(() => ({}));
+    const plat = (platform?.toUpperCase() === 'MACOS' ? 'MACOS' : platform?.toUpperCase() === 'LINUX' ? 'LINUX' : 'WINDOWS');
 
-    let logged;
-    try {
-      if (hasDb) {
-        logged = await prisma.downloadLog.create({
-          data: {
-            platform: validatedPlatform,
-            version: '4.0.0-PROD',
-          },
-        });
-      } else {
-        throw new Error('No DB');
-      }
-    } catch {
-      logged = {
-        id: `dl-${Date.now()}`,
-        platform: validatedPlatform,
-        version: '4.0.0-PROD',
-        downloadedAt: new Date().toISOString(),
-      };
-      mockStore.downloads.push(logged);
-    }
+    if (plat === 'MACOS') mockStore.traffic.macDownloads += 1;
+    else if (plat === 'LINUX') mockStore.traffic.linuxDownloads += 1;
+    else mockStore.traffic.windowsDownloads += 1;
 
     return NextResponse.json({
       success: true,
-      downloadUrl: `https://github.com/obhin-ai/obhin/releases/download/v4.0.0/obhin-v4.0.0-${validatedPlatform.toLowerCase()}.${
-        validatedPlatform === 'WINDOWS' ? 'exe' : validatedPlatform === 'MACOS' ? 'dmg' : 'AppImage'
+      downloadUrl: `https://github.com/mhkh361/Obhin-web/releases/download/v4.0.0/obhin-v4.0.0-${plat.toLowerCase()}.${
+        plat === 'WINDOWS' ? 'exe' : plat === 'MACOS' ? 'dmg' : 'AppImage'
       }`,
-      log: logged,
     });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Telemetry failed';
+    const msg = err instanceof Error ? err.message : 'Download tracking failed';
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
