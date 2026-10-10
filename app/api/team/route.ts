@@ -52,7 +52,26 @@ export async function POST(req: Request) {
       );
     }
 
+    function formatUrl(url?: string | null, platform?: 'linkedin' | 'github' | 'twitter'): string | null {
+      if (!url) return null;
+      const clean = url.trim();
+      if (!clean) return null;
+      if (/^https?:\/\//i.test(clean)) return clean;
+      if (/^(www\.)?linkedin\.com/i.test(clean)) return `https://${clean.replace(/^\/+/, '')}`;
+      if (/^(www\.)?github\.com/i.test(clean)) return `https://${clean.replace(/^\/+/, '')}`;
+      if (/^(www\.)?(twitter\.com|x\.com)/i.test(clean)) return `https://${clean.replace(/^\/+/, '')}`;
+
+      const handle = clean.replace(/^@/, '').replace(/^\/+/, '');
+      if (platform === 'linkedin') return `https://www.linkedin.com/in/${handle}`;
+      if (platform === 'github') return `https://github.com/${handle}`;
+      if (platform === 'twitter') return `https://x.com/${handle}`;
+      return `https://${clean}`;
+    }
+
     const finalImage = imageUrl && imageUrl.trim().length > 0 ? imageUrl.trim() : DEFAULT_AVATAR;
+    const finalGithub = formatUrl(githubUrl, 'github');
+    const finalLinkedin = formatUrl(linkedinUrl, 'linkedin');
+    const finalTwitter = formatUrl(twitterUrl, 'twitter');
 
     let updatedMember: TeamMemberData;
 
@@ -66,18 +85,18 @@ export async function POST(req: Request) {
             roleTitle: roleTitle.trim(),
             bio: bio ? bio.trim() : '',
             imageUrl: finalImage,
-            githubUrl: githubUrl ? githubUrl.trim() : null,
-            linkedinUrl: linkedinUrl ? linkedinUrl.trim() : null,
-            twitterUrl: twitterUrl ? twitterUrl.trim() : null,
+            githubUrl: finalGithub,
+            linkedinUrl: finalLinkedin,
+            twitterUrl: finalTwitter,
           },
           update: {
             name: name.trim(),
             roleTitle: roleTitle.trim(),
             bio: bio ? bio.trim() : '',
             imageUrl: finalImage,
-            githubUrl: githubUrl ? githubUrl.trim() : null,
-            linkedinUrl: linkedinUrl ? linkedinUrl.trim() : null,
-            twitterUrl: twitterUrl ? twitterUrl.trim() : null,
+            githubUrl: finalGithub,
+            linkedinUrl: finalLinkedin,
+            twitterUrl: finalTwitter,
           },
         });
       } else {
@@ -91,9 +110,9 @@ export async function POST(req: Request) {
         roleTitle: roleTitle.trim(),
         bio: bio ? bio.trim() : '',
         imageUrl: finalImage,
-        githubUrl: githubUrl ? githubUrl.trim() : null,
-        linkedinUrl: linkedinUrl ? linkedinUrl.trim() : null,
-        twitterUrl: twitterUrl ? twitterUrl.trim() : null,
+        githubUrl: finalGithub,
+        linkedinUrl: finalLinkedin,
+        twitterUrl: finalTwitter,
         updatedAt: new Date().toISOString(),
       };
     }

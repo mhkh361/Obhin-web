@@ -32,6 +32,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
+import { formatSocialUrl } from '@/components/sections/TeamSection';
 
 interface Member {
   id: string;
@@ -385,6 +386,10 @@ export default function AdminPage() {
       return;
     }
 
+    const safeGithub = memGithub.trim() ? formatSocialUrl(memGithub, 'github') : null;
+    const safeLinkedin = memLinkedin.trim() ? formatSocialUrl(memLinkedin, 'linkedin') : null;
+    const safeTwitter = memTwitter.trim() ? formatSocialUrl(memTwitter, 'twitter') : null;
+
     try {
       const payload = {
         order: selectedSlot,
@@ -392,9 +397,9 @@ export default function AdminPage() {
         roleTitle: safeRole,
         bio: safeBio,
         imageUrl: safeImage,
-        githubUrl: memGithub.trim() || null,
-        linkedinUrl: memLinkedin.trim() || null,
-        twitterUrl: memTwitter.trim() || null,
+        githubUrl: safeGithub,
+        linkedinUrl: safeLinkedin,
+        twitterUrl: safeTwitter,
       };
 
       const res = await fetch('/api/team', {
@@ -416,9 +421,9 @@ export default function AdminPage() {
           roleTitle: safeRole,
           bio: safeBio,
           imageUrl: safeImage,
-          githubUrl: memGithub.trim() || null,
-          linkedinUrl: memLinkedin.trim() || null,
-          twitterUrl: memTwitter.trim() || null,
+          githubUrl: safeGithub,
+          linkedinUrl: safeLinkedin,
+          twitterUrl: safeTwitter,
         };
 
         const updatedList = (members || []).map((m: Member) =>
@@ -1473,34 +1478,37 @@ export default function AdminPage() {
                 </div>
 
                 {/* Social Anchor Bar */}
-                <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+                <div className="pt-4 border-t border-white/10 flex items-center justify-between relative z-10">
                   <div className="flex items-center gap-3">
                     {memGithub ? (
                       <a
-                        href={memGithub}
+                        href={formatSocialUrl(memGithub, 'github')}
                         target="_blank"
-                        rel="noreferrer"
-                        className="text-zinc-400 hover:text-white transition-colors"
+                        rel="noopener noreferrer"
+                        className="p-1 -m-1 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                        title="GitHub Profile"
                       >
                         <Github className="w-4 h-4" />
                       </a>
                     ) : null}
                     {memLinkedin ? (
                       <a
-                        href={memLinkedin}
+                        href={formatSocialUrl(memLinkedin, 'linkedin')}
                         target="_blank"
-                        rel="noreferrer"
-                        className="text-zinc-400 hover:text-white transition-colors"
+                        rel="noopener noreferrer"
+                        className="p-1 -m-1 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                        title="LinkedIn Profile"
                       >
                         <Linkedin className="w-4 h-4" />
                       </a>
                     ) : null}
                     {memTwitter ? (
                       <a
-                        href={memTwitter}
+                        href={formatSocialUrl(memTwitter, 'twitter')}
                         target="_blank"
-                        rel="noreferrer"
-                        className="text-zinc-400 hover:text-white transition-colors"
+                        rel="noopener noreferrer"
+                        className="p-1 -m-1 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                        title="X (Twitter) Profile"
                       >
                         <Twitter className="w-4 h-4" />
                       </a>

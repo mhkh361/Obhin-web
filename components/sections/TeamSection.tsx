@@ -16,6 +16,39 @@ interface Member {
   twitterUrl?: string | null;
 }
 
+export function formatSocialUrl(url?: string | null, platform?: 'linkedin' | 'github' | 'twitter'): string {
+  if (!url) return '#';
+  const clean = url.trim();
+  if (!clean) return '#';
+
+  if (/^https?:\/\//i.test(clean)) {
+    return clean;
+  }
+
+  if (/^(www\.)?linkedin\.com/i.test(clean)) {
+    return `https://${clean.replace(/^\/+/, '')}`;
+  }
+  if (/^(www\.)?github\.com/i.test(clean)) {
+    return `https://${clean.replace(/^\/+/, '')}`;
+  }
+  if (/^(www\.)?(twitter\.com|x\.com)/i.test(clean)) {
+    return `https://${clean.replace(/^\/+/, '')}`;
+  }
+
+  const handle = clean.replace(/^@/, '').replace(/^\/+/, '');
+  if (platform === 'linkedin') {
+    return `https://www.linkedin.com/in/${handle}`;
+  }
+  if (platform === 'github') {
+    return `https://github.com/${handle}`;
+  }
+  if (platform === 'twitter') {
+    return `https://x.com/${handle}`;
+  }
+
+  return `https://${clean}`;
+}
+
 const DEFAULT_FALLBACK_TEAM: Member[] = [
   {
     id: 'dev-1',
@@ -213,37 +246,40 @@ export function TeamSection() {
             </div>
 
             {/* Social Anchor Bar */}
-            <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+            <div className="pt-4 border-t border-white/10 flex items-center justify-between relative z-10">
               <div className="flex items-center gap-3">
                 {member.githubUrl && (
                   <a
-                    href={member.githubUrl}
+                    href={formatSocialUrl(member.githubUrl, 'github')}
                     target="_blank"
-                    rel="noreferrer"
-                    className="text-zinc-400 hover:text-white transition-colors"
+                    rel="noopener noreferrer"
+                    className="p-1.5 -m-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer inline-flex items-center justify-center"
                     title="GitHub Profile"
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <Github className="w-4 h-4" />
                   </a>
                 )}
                 {member.linkedinUrl && (
                   <a
-                    href={member.linkedinUrl}
+                    href={formatSocialUrl(member.linkedinUrl, 'linkedin')}
                     target="_blank"
-                    rel="noreferrer"
-                    className="text-zinc-400 hover:text-white transition-colors"
+                    rel="noopener noreferrer"
+                    className="p-1.5 -m-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer inline-flex items-center justify-center"
                     title="LinkedIn Profile"
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <Linkedin className="w-4 h-4" />
                   </a>
                 )}
                 {member.twitterUrl && (
                   <a
-                    href={member.twitterUrl}
+                    href={formatSocialUrl(member.twitterUrl, 'twitter')}
                     target="_blank"
-                    rel="noreferrer"
-                    className="text-zinc-400 hover:text-white transition-colors"
+                    rel="noopener noreferrer"
+                    className="p-1.5 -m-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer inline-flex items-center justify-center"
                     title="X (Twitter) Profile"
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <Twitter className="w-4 h-4" />
                   </a>
