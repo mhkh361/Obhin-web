@@ -169,6 +169,20 @@ export default function AdminPage() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchAllData();
+
+      // Real-time live analytics streaming interval (polls every 3s)
+      const pollInterval = setInterval(() => {
+        fetch('/api/analytics')
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.stats) {
+              setStats(data.stats);
+            }
+          })
+          .catch(() => {});
+      }, 3000);
+
+      return () => clearInterval(pollInterval);
     }
   }, [isAuthenticated]);
 
@@ -479,18 +493,26 @@ export default function AdminPage() {
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="prism-glass p-6 sm:p-8 rounded-3xl space-y-6">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <div>
-                <h2 className="text-base font-bold font-mono text-white">
-                  Privacy-First Aggregate Metrics
-                </h2>
-                <p className="text-xs text-zinc-400 font-mono mt-0.5">
-                  100% Zero-PII • No IP Storage • No Tracking Cookies
-                </p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <h2 className="text-base font-bold font-mono text-white">
+                      Privacy-First Aggregate Metrics
+                    </h2>
+                    <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-mono text-emerald-400 font-semibold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      LIVE STREAMING
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400 font-mono mt-0.5">
+                    100% Zero-PII • Live Real-Time Telemetry • Auto-syncs every 3s
+                  </p>
+                </div>
               </div>
               <button
                 onClick={fetchAllData}
                 className="p-1.5 rounded-lg border border-white/10 text-zinc-400 hover:text-white"
-                title="Refresh Metrics"
+                title="Force Refresh Metrics"
               >
                 <RefreshCw className="w-4 h-4" />
               </button>
@@ -502,37 +524,37 @@ export default function AdminPage() {
                   Total Page Views
                 </span>
                 <div className="text-2xl font-bold font-mono text-white">
-                  {stats?.pageViews ?? 1420}
+                  {stats ? stats.pageViews : 0}
                 </div>
               </div>
 
               <div className="p-4 rounded-2xl bg-zinc-950/80 border border-white/10 space-y-1">
                 <div className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-400 uppercase">
-                  <Monitor className="w-3.5 h-3.5" />
+                  <Monitor className="w-3.5 h-3.5 text-sky-400" />
                   <span>Windows Dispatches</span>
                 </div>
                 <div className="text-2xl font-bold font-mono text-white">
-                  {stats?.windows ?? 680}
+                  {stats ? stats.windows : 0}
                 </div>
               </div>
 
               <div className="p-4 rounded-2xl bg-zinc-950/80 border border-white/10 space-y-1">
                 <div className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-400 uppercase">
-                  <Apple className="w-3.5 h-3.5" />
+                  <Apple className="w-3.5 h-3.5 text-zinc-300" />
                   <span>macOS Dispatches</span>
                 </div>
                 <div className="text-2xl font-bold font-mono text-white">
-                  {stats?.mac ?? 412}
+                  {stats ? stats.mac : 0}
                 </div>
               </div>
 
               <div className="p-4 rounded-2xl bg-zinc-950/80 border border-white/10 space-y-1">
                 <div className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-400 uppercase">
-                  <Terminal className="w-3.5 h-3.5" />
+                  <Terminal className="w-3.5 h-3.5 text-amber-400" />
                   <span>Linux Dispatches</span>
                 </div>
                 <div className="text-2xl font-bold font-mono text-white">
-                  {stats?.linux ?? 298}
+                  {stats ? stats.linux : 0}
                 </div>
               </div>
             </div>

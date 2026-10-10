@@ -63,14 +63,20 @@ export interface TeamMemberData {
   updatedAt?: string | Date;
 }
 
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+
+const trafficFilePath = path.join(os.tmpdir(), 'obhin_real_traffic_v1.json');
+
 // In-memory zero-PII fallback store for resilient serverless & local runtime
 export const mockStore = {
   keys: [] as Array<{ id: string; [key: string]: any }>,
   traffic: {
-    totalPageViews: 1420,
-    windowsDownloads: 680,
-    macDownloads: 412,
-    linuxDownloads: 298,
+    totalPageViews: 0,
+    windowsDownloads: 0,
+    macDownloads: 0,
+    linuxDownloads: 0,
   },
   skills: [
     {
@@ -253,3 +259,29 @@ export const mockStore = {
     },
   ] as TeamMemberData[],
 };
+
+export function getTrafficCounts() {
+  try {
+    if (fs.existsSync(trafficFilePath)) {
+      const data = JSON.parse(fs.readFileSync(trafficFilePath, 'utf-8'));
+      if (typeof data.totalPageViews === 'number') {
+        mockStore.traffic.totalPageViews = Math.max(mockStore.traffic.totalPageViews, data.totalPageViews);
+        mockStore.traffic.windowsDownloads = Math.max(mockStore.traffic.windowsDownloads, data.windowsDownloads);
+        mockStore.traffic.macDownloads = Math.max(mockStore.traffic.macDownloads, data.macDownloads);
+        mockStore.traffic.linuxDownloads = Math.max(mockStore.traffic.linuxDownloads, data.linuxDownloads);
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return mockStore.traffic;
+}
+
+export function saveTrafficCounts() {
+  try {
+    fs.writeFileSync(trafficFilePath, JSON.stringify(mockStore.traffic), 'utf-8');
+  } catch {
+    // ignore
+  }
+}
+

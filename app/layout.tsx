@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { SideToggleRail } from '@/components/layout/SideToggleRail';
 import { Footer } from '@/components/layout/Footer';
+import { AnalyticsTracker } from '@/components/analytics/AnalyticsTracker';
 
 export const metadata: Metadata = {
   title: 'OBHIN (অভিন) — The Power of a New Era',
@@ -36,6 +37,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark scroll-smooth">
       <body className="bg-black text-white min-h-screen flex flex-col antialiased selection:bg-white/20 selection:text-white">
+        {/* Real-time Zero-PII Public Page Visit Telemetry */}
+        <AnalyticsTracker />
+
         {/* Left Side-Toggle Dock / Navigation Rail */}
         <SideToggleRail />
 

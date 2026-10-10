@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma, mockStore, hasDb } from '@/lib/prisma';
+import { prisma, hasDb, getTrafficCounts, saveTrafficCounts } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +26,7 @@ export async function GET() {
     // fallback
   }
 
-  const s = mockStore.traffic;
+  const s = getTrafficCounts();
   return NextResponse.json({
     success: true,
     stats: {
@@ -41,22 +41,25 @@ export async function GET() {
 
 export async function POST() {
   try {
-    mockStore.traffic.totalPageViews += 1;
+    const s = getTrafficCounts();
+    s.totalPageViews += 1;
+    saveTrafficCounts();
+
     if (hasDb && prisma) {
       await prisma.trafficAnalytics.upsert({
         where: { id: 'global-traffic' },
         create: {
           id: 'global-traffic',
-          totalPageViews: 1,
+          totalPageViews: s.totalPageViews,
         },
         update: {
           totalPageViews: { increment: 1 },
         },
       });
     }
-    return NextResponse.json({ success: true, count: mockStore.traffic.totalPageViews });
+    return NextResponse.json({ success: true, count: s.totalPageViews });
   } catch {
-    return NextResponse.json({ success: true, count: mockStore.traffic.totalPageViews });
+    const s = getTrafficCounts();
+    return NextResponse.json({ success: true, count: s.totalPageViews });
   }
 }
-

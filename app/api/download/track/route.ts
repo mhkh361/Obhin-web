@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { prisma, mockStore, hasDb } from '@/lib/prisma';
+import { prisma, hasDb, getTrafficCounts, saveTrafficCounts } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const s = mockStore.traffic;
+  const s = getTrafficCounts();
   return NextResponse.json({
     success: true,
     stats: {
@@ -22,13 +22,15 @@ export async function POST(req: Request) {
     const { platform } = body;
     const plat = (platform || 'WINDOWS').toUpperCase();
 
+    const s = getTrafficCounts();
     if (plat === 'MACOS') {
-      mockStore.traffic.macDownloads += 1;
+      s.macDownloads += 1;
     } else if (plat === 'LINUX') {
-      mockStore.traffic.linuxDownloads += 1;
+      s.linuxDownloads += 1;
     } else {
-      mockStore.traffic.windowsDownloads += 1;
+      s.windowsDownloads += 1;
     }
+    saveTrafficCounts();
 
     try {
       if (hasDb && prisma) {
