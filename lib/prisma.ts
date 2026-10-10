@@ -285,3 +285,29 @@ export function saveTrafficCounts() {
   }
 }
 
+const teamFilePath = path.join(os.tmpdir(), 'obhin_team_members_v1.json');
+
+export function getTeamMembers(): TeamMemberData[] {
+  try {
+    if (fs.existsSync(teamFilePath)) {
+      const data = JSON.parse(fs.readFileSync(teamFilePath, 'utf-8'));
+      if (Array.isArray(data) && data.length > 0) {
+        mockStore.teamMembers = data;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return mockStore.teamMembers;
+}
+
+export function saveTeamMembers(members: TeamMemberData[]) {
+  try {
+    mockStore.teamMembers = members;
+    fs.writeFileSync(teamFilePath, JSON.stringify(members), 'utf-8');
+  } catch {
+    // ignore
+  }
+}
+
+

@@ -131,6 +131,7 @@ export default function AdminPage() {
   const [memLinkedin, setMemLinkedin] = useState('');
   const [memTwitter, setMemTwitter] = useState('');
   const [useUrlInput, setUseUrlInput] = useState(false);
+  const [savingTeam, setSavingTeam] = useState(false);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -204,8 +205,26 @@ export default function AdminPage() {
       if (skillsData.skills) setSkills(skillsData.skills);
       if (provData.providers) setProviders(provData.providers);
       if (teamData.members) {
-        setMembers(teamData.members);
-        populateTeamForm(selectedSlot, teamData.members);
+        let finalMembers = teamData.members;
+        if (typeof window !== 'undefined') {
+          const cached = localStorage.getItem('obhin_custom_team');
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                // Merge local updates with server data
+                const map = new Map<number, Member>();
+                finalMembers.forEach((m: Member) => map.set(m.order, m));
+                parsed.forEach((m: Member) => map.set(m.order, { ...map.get(m.order), ...m }));
+                finalMembers = Array.from(map.values()).sort((a, b) => a.order - b.order);
+              }
+            } catch {
+              // ignore
+            }
+          }
+        }
+        setMembers(finalMembers);
+        populateTeamForm(selectedSlot, finalMembers);
       }
     } catch {
       // fallback
@@ -260,6 +279,8 @@ export default function AdminPage() {
 
   const handleSaveTeam = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSavingTeam(true);
+    setStatusMessage(null);
     try {
       const res = await fetch('/api/team', {
         method: 'POST',
@@ -277,12 +298,52 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setStatusMessage(`Team slot 0${selectedSlot} updated!`);
-        fetchAllData();
-        setTimeout(() => setStatusMessage(null), 3000);
+        setStatusMessage(`✅ Slot 0${selectedSlot} (${memName}) successfully updated!`);
+
+        // Immediately update members list in memory and in local storage
+        const updatedList = (members || []).map((m: Member) =>
+          m.order === selectedSlot
+            ? {
+                ...m,
+                name: memName,
+                roleTitle: memRole,
+                bio: memBio,
+                imageUrl: memImage || m.imageUrl,
+                githubUrl: memGithub || null,
+                linkedinUrl: memLinkedin || null,
+                twitterUrl: memTwitter || null,
+              }
+            : m
+        );
+        if (!updatedList.some((m: Member) => m.order === selectedSlot)) {
+          updatedList.push({
+            id: `dev-${selectedSlot}`,
+            order: selectedSlot,
+            name: memName,
+            roleTitle: memRole,
+            bio: memBio,
+            imageUrl: memImage,
+            githubUrl: memGithub || null,
+            linkedinUrl: memLinkedin || null,
+            twitterUrl: memTwitter || null,
+          });
+        }
+        updatedList.sort((a: Member, b: Member) => a.order - b.order);
+        setMembers(updatedList);
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('obhin_custom_team', JSON.stringify(updatedList));
+        }
+
+        setTimeout(() => setStatusMessage(null), 4000);
+      } else {
+        setStatusMessage(`❌ Error: ${data.error || 'Failed to update team slot'}`);
       }
-    } catch {
-      setStatusMessage('Error saving team slot');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Network error';
+      setStatusMessage(`❌ Error saving team slot: ${msg}`);
+    } finally {
+      setSavingTeam(false);
     }
   };
 
@@ -1095,10 +1156,11 @@ export default function AdminPage() {
               <div className="pt-4 border-t border-white/10 flex justify-end">
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-white text-black font-semibold text-xs font-mono hover:bg-zinc-200 transition-all flex items-center gap-2"
+                  disabled={savingTeam}
+                  className="px-6 py-2.5 rounded-xl bg-white text-black font-semibold text-xs font-mono hover:bg-zinc-200 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.2)]"
                 >
-                  <Save className="w-4 h-4" />
-                  Save Slot 0{selectedSlot} Changes
+                  <Save className={`w-4 h-4 ${savingTeam ? 'animate-spin' : ''}`} />
+                  <span>{savingTeam ? 'Saving Profile...' : `Save Slot 0${selectedSlot} Changes`}</span>
                 </button>
               </div>
             </form>

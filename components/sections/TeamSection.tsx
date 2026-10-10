@@ -25,8 +25,27 @@ export function TeamSection() {
       setLoading(true);
       const res = await fetch('/api/team');
       const data = await res.json();
-      if (data.members && Array.isArray(data.members)) {
-        setTeam(data.members.sort((a: Member, b: Member) => a.order - b.order));
+      let list: Member[] = data.members && Array.isArray(data.members) ? data.members : [];
+
+      if (typeof window !== 'undefined') {
+        const cached = localStorage.getItem('obhin_custom_team');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              const map = new Map<number, Member>();
+              list.forEach((m: Member) => map.set(m.order, m));
+              parsed.forEach((m: Member) => map.set(m.order, { ...map.get(m.order), ...m }));
+              list = Array.from(map.values());
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      if (list.length > 0) {
+        setTeam(list.sort((a: Member, b: Member) => a.order - b.order));
       }
     } catch {
       // handled

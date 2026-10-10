@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
-import { prisma, mockStore, hasDb } from '@/lib/prisma';
+import { prisma, hasDb, getTeamMembers, saveTeamMembers, TeamMemberData } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
+const DEFAULT_AVATAR =
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80';
+
 export async function GET() {
   try {
-    if (hasDb) {
+    if (hasDb && prisma) {
       const members = await prisma.teamMember.findMany({
         orderBy: { order: 'asc' },
       });
@@ -18,7 +21,8 @@ export async function GET() {
     // fallback
   }
 
-  return NextResponse.json({ success: true, members: mockStore.teamMembers });
+  const members = getTeamMembers();
+  return NextResponse.json({ success: true, members });
 }
 
 export async function POST(req: Request) {
@@ -26,69 +30,90 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { order, name, roleTitle, bio, imageUrl, githubUrl, linkedinUrl, twitterUrl } = body;
 
-    if (!order || !name || !roleTitle || !imageUrl) {
+    const slotOrder = Number(order);
+    if (!slotOrder || slotOrder < 1 || slotOrder > 3) {
       return NextResponse.json(
-        { error: 'Order (1, 2, or 3), name, roleTitle, and imageUrl are required.' },
+        { error: 'Valid slot order (1, 2, or 3) is required.' },
         { status: 400 }
       );
     }
 
+    if (!name || !name.trim()) {
+      return NextResponse.json(
+        { error: 'Full Name is required to update this team slot.' },
+        { status: 400 }
+      );
+    }
+
+    if (!roleTitle || !roleTitle.trim()) {
+      return NextResponse.json(
+        { error: 'Role Title is required to update this team slot.' },
+        { status: 400 }
+      );
+    }
+
+    const finalImage = imageUrl && imageUrl.trim().length > 0 ? imageUrl.trim() : DEFAULT_AVATAR;
+
+    let updatedMember: TeamMemberData;
+
     try {
-      if (!hasDb) throw new Error('No DB');
-      const updated = await prisma.teamMember.upsert({
-        where: { order: Number(order) },
-        create: {
-          order: Number(order),
-          name,
-          roleTitle,
-          bio: bio || '',
-          imageUrl,
-          githubUrl: githubUrl || null,
-          linkedinUrl: linkedinUrl || null,
-          twitterUrl: twitterUrl || null,
-        },
-        update: {
-          name,
-          roleTitle,
-          bio: bio || '',
-          imageUrl,
-          githubUrl: githubUrl || null,
-          linkedinUrl: linkedinUrl || null,
-          twitterUrl: twitterUrl || null,
-        },
-      });
-
-      const idx = mockStore.teamMembers.findIndex((m) => m.order === Number(order));
-      if (idx !== -1) {
-        mockStore.teamMembers[idx] = { ...mockStore.teamMembers[idx], ...updated };
+      if (hasDb && prisma) {
+        updatedMember = await prisma.teamMember.upsert({
+          where: { order: slotOrder },
+          create: {
+            order: slotOrder,
+            name: name.trim(),
+            roleTitle: roleTitle.trim(),
+            bio: bio ? bio.trim() : '',
+            imageUrl: finalImage,
+            githubUrl: githubUrl ? githubUrl.trim() : null,
+            linkedinUrl: linkedinUrl ? linkedinUrl.trim() : null,
+            twitterUrl: twitterUrl ? twitterUrl.trim() : null,
+          },
+          update: {
+            name: name.trim(),
+            roleTitle: roleTitle.trim(),
+            bio: bio ? bio.trim() : '',
+            imageUrl: finalImage,
+            githubUrl: githubUrl ? githubUrl.trim() : null,
+            linkedinUrl: linkedinUrl ? linkedinUrl.trim() : null,
+            twitterUrl: twitterUrl ? twitterUrl.trim() : null,
+          },
+        });
       } else {
-        mockStore.teamMembers.push(updated);
+        throw new Error('Using persistent file store');
       }
-
-      return NextResponse.json({ success: true, member: updated });
     } catch {
-      const idx = mockStore.teamMembers.findIndex((m) => m.order === Number(order));
-      const fallbackMember = {
-        id: `dev-${order}`,
-        order: Number(order),
-        name,
-        roleTitle,
-        bio: bio || '',
-        imageUrl,
-        githubUrl: githubUrl || null,
-        linkedinUrl: linkedinUrl || null,
-        twitterUrl: twitterUrl || null,
+      updatedMember = {
+        id: `dev-${slotOrder}`,
+        order: slotOrder,
+        name: name.trim(),
+        roleTitle: roleTitle.trim(),
+        bio: bio ? bio.trim() : '',
+        imageUrl: finalImage,
+        githubUrl: githubUrl ? githubUrl.trim() : null,
+        linkedinUrl: linkedinUrl ? linkedinUrl.trim() : null,
+        twitterUrl: twitterUrl ? twitterUrl.trim() : null,
         updatedAt: new Date().toISOString(),
       };
-
-      if (idx !== -1) {
-        mockStore.teamMembers[idx] = fallbackMember;
-      } else {
-        mockStore.teamMembers.push(fallbackMember);
-      }
-
-      return NextResponse.json({ success: true, member: fallbackMember });
     }
+
+    // Update in-memory & file cache
+    const current = getTeamMembers();
+    const idx = current.findIndex((m) => m.order === slotOrder);
+    if (idx !== -1) {
+      current[idx] = { ...current[idx], ...updatedMember };
+    } else {
+      current.push(updatedMember);
+    }
+    current.sort((a, b) => a.order - b.order);
+    saveTeamMembers(current);
+
+    return NextResponse.json({
+      success: true,
+      member: updatedMember,
+      members: current,
+    });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Failed to update team member';
     return NextResponse.json({ error: msg }, { status: 500 });
