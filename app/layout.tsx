@@ -8,7 +8,12 @@ export const metadata: Metadata = {
   description:
     '100% Independent, Free & Open-Source AI Productivity System and Autonomous Execution Engine. Multi-Provider BYOK Matrix, Real-Time Self-Correction Skills, and Prismatic Glass Aesthetics.',
   icons: {
-    icon: '/favicon.svg',
+    icon: [
+      { url: '/logo.svg', type: 'image/svg+xml' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    shortcut: '/logo.svg',
+    apple: '/logo.svg',
   },
   keywords: [
     'OBHIN',
