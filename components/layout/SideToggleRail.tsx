@@ -79,8 +79,8 @@ export function SideToggleRail() {
       {/* Mobile Top Bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-14 z-50 bg-black/90 backdrop-blur-xl border-b border-white/10 px-4 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <ObhinLogo className="w-6 h-6" />
-          <span className="font-mono font-bold tracking-widest text-sm text-white">
+          <ObhinLogo className="w-8 h-8" glow={true} />
+          <span className="font-mono font-bold tracking-widest text-sm text-white bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-indigo-400">
             OBHIN
           </span>
         </div>
@@ -129,18 +129,19 @@ export function SideToggleRail() {
           isExpanded ? 'w-64' : 'w-16'
         }`}
       >
-        {/* Top Logo & Rail Expand Toggle */}
+        {/* Top Brand Mark Slot (PRD 1.2: 32x32px with ambient cyan glow) */}
         <div className="p-3 border-b border-white/10 flex items-center justify-between">
           <button
             onClick={() => scrollTo('singularity')}
             className="flex items-center gap-3 overflow-hidden text-left group"
+            title="OBHIN AI // Return to Core Singularity"
           >
-            <div className="shrink-0 w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center group-hover:border-white/30 transition-colors">
-              <ObhinLogo className="w-6 h-6" />
+            <div className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
+              <ObhinLogo className="w-8 h-8" glow={true} />
             </div>
             {isExpanded && (
               <div className="whitespace-nowrap transition-opacity duration-200">
-                <span className="font-mono font-bold tracking-widest text-sm text-white block">
+                <span className="font-mono font-bold tracking-widest text-sm text-white block bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-indigo-400">
                   OBHIN
                 </span>
                 <span className="text-[10px] font-mono text-zinc-400 block tracking-tight">

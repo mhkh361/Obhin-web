@@ -99,7 +99,14 @@ export function DownloadMatrix() {
   };
 
   return (
-    <section id="downloads" className="w-full space-y-6 scroll-mt-20">
+    <section id="downloads" className="relative w-full space-y-6 scroll-mt-20 overflow-hidden">
+      {/* PRD v1.0.0 Atmospheric Depth Radial Glow */}
+      <div
+        className="absolute inset-0 pointer-events-none -z-10"
+        style={{
+          background: 'radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.07) 0%, transparent 70%)',
+        }}
+      />
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">

@@ -11,15 +11,15 @@ function PrismaticCrystalCore() {
   const pointsRef = useRef<THREE.Points>(null!);
   const ringRef = useRef<THREE.Group>(null!);
 
-  // Monochrome prismatic particle cloud
+  // Electric Cyan & Purple neon prismatic particle cloud (PRD v1.0.0)
   const [particlesPos, particlesColors] = useMemo(() => {
     const count = 1200;
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
 
+    const cyan = new THREE.Color('#38BDF8');
+    const purple = new THREE.Color('#818CF8');
     const white = new THREE.Color('#ffffff');
-    const zinc = new THREE.Color('#a1a1aa');
-    const prismHigh = new THREE.Color('#e4e4e7');
 
     for (let i = 0; i < count; i++) {
       const phi = Math.acos(-1 + (2 * i) / count);
@@ -30,7 +30,8 @@ function PrismaticCrystalCore() {
       positions[i * 3 + 1] = radius * Math.sin(theta) * Math.sin(phi);
       positions[i * 3 + 2] = radius * Math.cos(phi);
 
-      const chosen = Math.random() < 0.6 ? white : Math.random() < 0.85 ? zinc : prismHigh;
+      const rand = Math.random();
+      const chosen = rand < 0.45 ? cyan : rand < 0.8 ? purple : white;
       colors[i * 3] = chosen.r;
       colors[i * 3 + 1] = chosen.g;
       colors[i * 3 + 2] = chosen.b;
@@ -66,55 +67,56 @@ function PrismaticCrystalCore() {
           <bufferAttribute attach="attributes-color" args={[particlesColors, 3]} />
         </bufferGeometry>
         <pointsMaterial
-          size={0.03}
+          size={0.035}
           vertexColors
           transparent
-          opacity={0.8}
+          opacity={0.85}
           blending={THREE.AdditiveBlending}
         />
       </points>
 
-      {/* Main Prismatic Crystal Core (Icosahedron / Octahedron with transmission) */}
+      {/* Main Prismatic Crystal Core */}
       <mesh ref={crystalMeshRef}>
         <octahedronGeometry args={[1.5, 0]} />
         <meshPhysicalMaterial
-          color="#ffffff"
-          roughness={0.02}
-          transmission={0.96}
-          thickness={1.2}
-          ior={1.54}
-          specularIntensity={1}
-          specularColor={new THREE.Color('#ffffff')}
+          color="#f0f9ff"
+          roughness={0.04}
+          transmission={0.94}
+          thickness={1.3}
+          ior={1.56}
+          specularIntensity={1.2}
+          specularColor={new THREE.Color('#38BDF8')}
           transparent
-          opacity={0.9}
+          opacity={0.92}
           wireframe={false}
         />
       </mesh>
 
-      {/* Wireframe Refraction Silhouette */}
+      {/* Electric Cyan Neon Wireframe Edge Lighting (PRD 4.2) */}
       <mesh>
-        <octahedronGeometry args={[1.51, 0]} />
-        <meshBasicMaterial color="#ffffff" wireframe transparent opacity={0.35} />
+        <octahedronGeometry args={[1.515, 0]} />
+        <meshBasicMaterial color="#38BDF8" wireframe transparent opacity={0.45} />
       </mesh>
 
-      {/* Internal Singularity Lattice */}
+      {/* Internal Purple Singularity Lattice (PRD 4.2) */}
       <mesh ref={innerCoreRef}>
         <icosahedronGeometry args={[0.7, 1]} />
-        <meshBasicMaterial color="#ffffff" wireframe transparent opacity={0.6} />
+        <meshBasicMaterial color="#818CF8" wireframe transparent opacity={0.65} />
       </mesh>
 
-      {/* Central High-Intensity Singularity Light */}
-      <pointLight color="#ffffff" intensity={4} distance={6} decay={2} />
+      {/* Central Cyan High-Intensity Singularity Light */}
+      <pointLight color="#38BDF8" intensity={5} distance={7} decay={2} />
+      <pointLight color="#818CF8" intensity={2} distance={5} decay={2} />
 
-      {/* Prismatic Orbiting Rings */}
+      {/* Prismatic Orbiting Rings with Cyan & Violet Neon Accents */}
       <group ref={ringRef}>
         <mesh rotation={[Math.PI / 3, 0, 0]}>
-          <torusGeometry args={[2.5, 0.006, 16, 120]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={0.3} />
+          <torusGeometry args={[2.5, 0.008, 16, 120]} />
+          <meshBasicMaterial color="#38BDF8" transparent opacity={0.4} />
         </mesh>
         <mesh rotation={[-Math.PI / 4, Math.PI / 4, 0]}>
-          <torusGeometry args={[2.8, 0.005, 16, 120]} />
-          <meshBasicMaterial color="#a1a1aa" transparent opacity={0.25} />
+          <torusGeometry args={[2.8, 0.007, 16, 120]} />
+          <meshBasicMaterial color="#818CF8" transparent opacity={0.35} />
         </mesh>
       </group>
     </group>

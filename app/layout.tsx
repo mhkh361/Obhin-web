@@ -7,6 +7,9 @@ export const metadata: Metadata = {
   title: 'OBHIN (অভিন) — The Power of a New Era',
   description:
     '100% Independent, Free & Open-Source AI Productivity System and Autonomous Execution Engine. Multi-Provider BYOK Matrix, Real-Time Self-Correction Skills, and Prismatic Glass Aesthetics.',
+  icons: {
+    icon: '/favicon.svg',
+  },
   keywords: [
     'OBHIN',
     'অভিন',

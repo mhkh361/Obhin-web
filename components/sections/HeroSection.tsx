@@ -15,6 +15,7 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { WindowsVector, AppleVector, LinuxVector } from '@/components/ui/OsVectorIcons';
+import { ObhinLogo } from '@/components/ui/ObhinLogo';
 
 const PrismCore3D = dynamic(() => import('@/components/canvas/PrismCore3D'), {
   ssr: false,
@@ -115,21 +116,35 @@ export function HeroSection() {
   const cta = getCtaContent();
 
   return (
-    <section id="singularity" className="relative min-h-[92vh] flex flex-col justify-center overflow-hidden pt-6 pb-16 scroll-mt-20">
+    <section
+      id="singularity"
+      className="relative min-h-[92vh] flex flex-col justify-center overflow-hidden pt-6 pb-16 scroll-mt-20"
+      style={{
+        background: 'radial-gradient(circle at 50% 10%, rgba(56, 189, 248, 0.08) 0%, transparent 60%)',
+      }}
+    >
       {/* Background Refraction Ambient Glows */}
-      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-white/[0.03] rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-10 right-1/4 translate-x-1/2 w-[500px] h-[500px] bg-zinc-700/[0.03] rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-sky-500/[0.04] rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-10 right-1/4 translate-x-1/2 w-[500px] h-[500px] bg-indigo-500/[0.04] rounded-full blur-[150px] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         {/* Left Column: Headlines & Call to Actions */}
         <div className="lg:col-span-7 space-y-6 text-left">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/15 backdrop-blur-md">
-            <span className="flex h-1.5 w-1.5 rounded-full bg-white animate-ping" />
-            <span className="text-xs font-mono text-zinc-300 font-medium">
-              The Power of a New Era
+          {/* PRD 1.3: Hero Section Brand Lockup */}
+          <div className="inline-flex items-center gap-3 px-3.5 py-1.5 rounded-full bg-zinc-950/80 border border-white/10 backdrop-blur-md shadow-[0_0_15px_rgba(56,189,248,0.08)]">
+            <div className="w-5 h-5 rounded-full flex items-center justify-center">
+              <ObhinLogo className="w-5 h-5" glow={true} />
+            </div>
+            <div className="h-3 w-px bg-white/20" />
+            <span className="text-xs font-mono text-zinc-300 font-medium tracking-wide">
+              OBHIN AI
             </span>
             <span className="text-zinc-600">•</span>
-            <span className="text-xs font-mono text-zinc-400">100% Free & Open-Source</span>
+            <span className="text-xs font-mono bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-indigo-400 font-semibold">
+              The Power of a New Era
+            </span>
+            <span className="text-zinc-600 hidden sm:inline">•</span>
+            <span className="text-xs font-mono text-zinc-400 hidden sm:inline">100% Free & Open-Source</span>
           </div>
 
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.05]">
@@ -146,29 +161,32 @@ export function HeroSection() {
           {/* Highlights Checklist */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2 text-xs font-mono text-zinc-300">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-white shrink-0" />
+              <ShieldCheck className="w-4 h-4 text-sky-400 shrink-0" />
               <span>Zero Personal Data (No PII)</span>
             </div>
             <div className="flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-white shrink-0" />
+              <Cpu className="w-4 h-4 text-indigo-400 shrink-0" />
               <span>Multi-Provider BYOK</span>
             </div>
             <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4 text-white shrink-0" />
+              <Layers className="w-4 h-4 text-sky-400 shrink-0" />
               <span>Client-Side Keys</span>
             </div>
           </div>
 
-          {/* Dynamic Smart Download CTA Row */}
+          {/* Dynamic Smart Download CTA Row (PRD 3.1: High-Contrast Brand Gradient CTA) */}
           <div className="space-y-3 pt-4">
             <div className="flex flex-wrap items-center gap-4">
               <button
                 onClick={handleSmartDownload}
                 disabled={downloading}
-                className="px-6 py-3.5 rounded-xl bg-white text-black font-semibold text-sm hover:bg-zinc-200 transition-all shadow-[0_0_25px_rgba(255,255,255,0.25)] flex items-center gap-2.5 group"
+                className="px-6 py-3.5 rounded-xl text-white font-semibold text-sm transition-all duration-150 ease-out flex items-center gap-2.5 group shadow-[0_0_20px_rgba(56,189,248,0.35)] hover:shadow-[0_0_30px_rgba(56,189,248,0.5)] hover:scale-[1.02] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+                style={{
+                  background: 'linear-gradient(135deg, #38BDF8 0%, #6366F1 100%)',
+                }}
               >
                 {cta.icon}
-                <span>{downloading ? 'Preparing Download...' : cta.label}</span>
+                <span className="tracking-wide">{downloading ? 'Preparing Download...' : cta.label}</span>
               </button>
 
               <button
@@ -180,7 +198,7 @@ export function HeroSection() {
               </button>
 
               <a href="#downloads">
-                <button className="px-5 py-3.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-white border border-white/15 text-xs font-mono transition-all">
+                <button className="px-5 py-3.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-white border border-white/15 text-xs font-mono transition-all hover:border-sky-400/40">
                   All OS Releases
                 </button>
               </a>
