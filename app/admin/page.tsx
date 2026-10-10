@@ -23,6 +23,7 @@ import {
   Eye,
   EyeOff,
   Layers,
+  Image as ImageIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -129,6 +130,51 @@ export default function AdminPage() {
   const [memGithub, setMemGithub] = useState('');
   const [memLinkedin, setMemLinkedin] = useState('');
   const [memTwitter, setMemTwitter] = useState('');
+  const [useUrlInput, setUseUrlInput] = useState(false);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const src = event.target?.result as string;
+      if (!src) return;
+
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDimension = 600;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxDimension) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          }
+        } else {
+          if (height > maxDimension) {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL('image/jpeg', 0.88);
+          setMemImage(compressed);
+        } else {
+          setMemImage(src);
+        }
+      };
+      img.src = src;
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -933,17 +979,87 @@ export default function AdminPage() {
                 />
               </div>
 
-              <div>
-                <label className="text-xs font-mono text-zinc-400 block mb-1">
-                  Profile Image URL
-                </label>
-                <input
-                  type="text"
-                  value={memImage}
-                  onChange={(e) => setMemImage(e.target.value)}
-                  className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-white/50"
-                  required
-                />
+              {/* Profile Image Upload & Selection Section */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-mono text-zinc-300 flex items-center gap-1.5 font-medium">
+                    <ImageIcon className="w-3.5 h-3.5 text-sky-400" />
+                    <span>Founder Profile Image</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setUseUrlInput(!useUrlInput)}
+                    className="text-[11px] font-mono text-zinc-400 hover:text-white underline transition-colors"
+                  >
+                    {useUrlInput ? 'Switch to File Upload' : 'Or paste Image URL'}
+                  </button>
+                </div>
+
+                {!useUrlInput ? (
+                  <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-zinc-950/90 border border-white/15">
+                    {/* Image Preview Thumbnail */}
+                    <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-black border border-white/20 shrink-0 shadow-lg flex items-center justify-center group">
+                      {memImage ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={memImage}
+                          alt="Profile Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-zinc-600 gap-1 p-2 text-center">
+                          <ImageIcon className="w-6 h-6" />
+                          <span className="text-[9px] font-mono">No Image</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Upload Actions & Guidance */}
+                    <div className="flex-1 space-y-2 text-left w-full">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="cursor-pointer px-4 py-2 rounded-xl bg-white text-black font-semibold text-xs hover:bg-zinc-200 transition-all shadow-[0_0_15px_rgba(255,255,255,0.15)] flex items-center gap-2">
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>{memImage ? 'Change Photo' : 'Upload Image File'}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="hidden"
+                          />
+                        </label>
+
+                        {memImage && (
+                          <button
+                            type="button"
+                            onClick={() => setMemImage('')}
+                            className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-mono transition-all flex items-center gap-1.5"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Remove</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <p className="text-[11px] font-mono text-zinc-400 font-light">
+                        Supports PNG, JPG, WebP, SVG. Uploaded files are automatically optimized and compressed for instant loading.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <input
+                      type="text"
+                      placeholder="https://images.unsplash.com/... or /assets/..."
+                      value={memImage}
+                      onChange={(e) => setMemImage(e.target.value)}
+                      className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-white/50"
+                      required
+                    />
+                    <p className="text-[10px] font-mono text-zinc-500">
+                      Paste a direct HTTPS URL to any image hosted online.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
