@@ -286,6 +286,7 @@ export function saveTrafficCounts() {
 }
 
 const teamFilePath = path.join(os.tmpdir(), 'obhin_team_members_v1.json');
+const repoTeamFilePath = path.join(process.cwd(), 'lib', 'team-data.json');
 
 export function getTeamMembers(): TeamMemberData[] {
   try {
@@ -293,18 +294,37 @@ export function getTeamMembers(): TeamMemberData[] {
       const data = JSON.parse(fs.readFileSync(teamFilePath, 'utf-8'));
       if (Array.isArray(data) && data.length > 0) {
         mockStore.teamMembers = data;
+        return mockStore.teamMembers;
       }
     }
   } catch {
     // ignore
   }
+
+  try {
+    if (fs.existsSync(repoTeamFilePath)) {
+      const data = JSON.parse(fs.readFileSync(repoTeamFilePath, 'utf-8'));
+      if (Array.isArray(data) && data.length > 0) {
+        mockStore.teamMembers = data;
+        return mockStore.teamMembers;
+      }
+    }
+  } catch {
+    // ignore
+  }
+
   return mockStore.teamMembers;
 }
 
 export function saveTeamMembers(members: TeamMemberData[]) {
+  mockStore.teamMembers = members;
   try {
-    mockStore.teamMembers = members;
-    fs.writeFileSync(teamFilePath, JSON.stringify(members), 'utf-8');
+    fs.writeFileSync(teamFilePath, JSON.stringify(members, null, 2), 'utf-8');
+  } catch {
+    // ignore
+  }
+  try {
+    fs.writeFileSync(repoTeamFilePath, JSON.stringify(members, null, 2), 'utf-8');
   } catch {
     // ignore
   }

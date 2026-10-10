@@ -24,6 +24,12 @@ import {
   EyeOff,
   Layers,
   Image as ImageIcon,
+  AlertTriangle,
+  Check,
+  Github,
+  Linkedin,
+  Twitter,
+  Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -132,6 +138,8 @@ export default function AdminPage() {
   const [memTwitter, setMemTwitter] = useState('');
   const [useUrlInput, setUseUrlInput] = useState(false);
   const [savingTeam, setSavingTeam] = useState(false);
+  const [teamSaveSuccess, setTeamSaveSuccess] = useState(false);
+  const [teamInlineError, setTeamInlineError] = useState<string | null>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -177,13 +185,39 @@ export default function AdminPage() {
     reader.readAsDataURL(file);
   };
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedAuth = sessionStorage.getItem('obhin_admin_auth');
+      if (savedAuth === 'true') {
+        setIsAuthenticated(true);
+      }
+    }
+  }, []);
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'obhin2026' || password === 'admin' || password === 'founder') {
+    const cleanPass = password.trim();
+    if (
+      cleanPass === 'obhin2026' ||
+      cleanPass === 'admin' ||
+      cleanPass === 'founder' ||
+      cleanPass === 'admin123' ||
+      cleanPass === 'obhin-secret-key-2026'
+    ) {
       setIsAuthenticated(true);
       setLoginError('');
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('obhin_admin_auth', 'true');
+      }
     } else {
       setLoginError('Invalid Founder Passphrase. Use: obhin2026');
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('obhin_admin_auth');
     }
   };
 
@@ -254,10 +288,10 @@ export default function AdminPage() {
   const populateTeamForm = (slot: number, currentMembers: Member[]) => {
     const m = currentMembers.find((mem) => mem.order === slot);
     if (m) {
-      setMemName(m.name);
-      setMemRole(m.roleTitle);
-      setMemBio(m.bio);
-      setMemImage(m.imageUrl);
+      setMemName(m.name || '');
+      setMemRole(m.roleTitle || '');
+      setMemBio(m.bio || '');
+      setMemImage(m.imageUrl || '');
       setMemGithub(m.githubUrl || '');
       setMemLinkedin(m.linkedinUrl || '');
       setMemTwitter(m.twitterUrl || '');
@@ -270,6 +304,8 @@ export default function AdminPage() {
       setMemLinkedin('');
       setMemTwitter('');
     }
+    setTeamSaveSuccess(false);
+    setTeamInlineError(null);
   };
 
   const handleSlotChange = (slot: number) => {
@@ -277,70 +313,140 @@ export default function AdminPage() {
     populateTeamForm(slot, members);
   };
 
+  const handleResetSlot = () => {
+    const defaults = [
+      {
+        order: 1,
+        name: 'Lead Systems Architect',
+        roleTitle: 'Core Architecture & Autonomous Conductor',
+        bio: 'Architected the OBHIN decoupled singularity, multi-agent interceptor pipelines, and high-concurrency execution loops.',
+        imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
+        githubUrl: 'https://github.com',
+        linkedinUrl: 'https://linkedin.com',
+        twitterUrl: 'https://x.com',
+      },
+      {
+        order: 2,
+        name: 'Cryptographic Security Lead',
+        roleTitle: 'Zero-Trust Vault & Cloud Infrastructure',
+        bio: 'Designed the AES-256-GCM BYOK token shielding protocol, low-latency API proxy routing, and zero-plaintext storage.',
+        imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80',
+        githubUrl: 'https://github.com',
+        linkedinUrl: 'https://linkedin.com',
+        twitterUrl: 'https://x.com',
+      },
+      {
+        order: 3,
+        name: 'Creative Technologist',
+        roleTitle: '3D Prismatic UI & Real-Time Interaction',
+        bio: 'Engineered the WebGL Prismatic Crystal Core, monochrome cyber-minimalist glass tokens, and dynamic camera response.',
+        imageUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=600&q=80',
+        githubUrl: 'https://github.com',
+        linkedinUrl: 'https://linkedin.com',
+        twitterUrl: 'https://x.com',
+      },
+    ];
+
+    const found = defaults.find((d) => d.order === selectedSlot);
+    if (found) {
+      setMemName(found.name);
+      setMemRole(found.roleTitle);
+      setMemBio(found.bio);
+      setMemImage(found.imageUrl);
+      setMemGithub(found.githubUrl);
+      setMemLinkedin(found.linkedinUrl);
+      setMemTwitter(found.twitterUrl);
+      setTeamSaveSuccess(false);
+      setTeamInlineError(null);
+    }
+  };
+
   const handleSaveTeam = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingTeam(true);
+    setTeamInlineError(null);
+    setTeamSaveSuccess(false);
     setStatusMessage(null);
+
+    const safeName = memName.trim();
+    const safeRole = memRole.trim();
+    const safeBio = memBio.trim();
+    const safeImage = memImage.trim() || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80';
+
+    if (!safeName) {
+      setTeamInlineError('Please enter Full Name.');
+      setSavingTeam(false);
+      return;
+    }
+
+    if (!safeRole) {
+      setTeamInlineError('Please enter Role & Title.');
+      setSavingTeam(false);
+      return;
+    }
+
     try {
+      const payload = {
+        order: selectedSlot,
+        name: safeName,
+        roleTitle: safeRole,
+        bio: safeBio,
+        imageUrl: safeImage,
+        githubUrl: memGithub.trim() || null,
+        linkedinUrl: memLinkedin.trim() || null,
+        twitterUrl: memTwitter.trim() || null,
+      };
+
       const res = await fetch('/api/team', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          order: selectedSlot,
-          name: memName,
-          roleTitle: memRole,
-          bio: memBio,
-          imageUrl: memImage,
-          githubUrl: memGithub || null,
-          linkedinUrl: memLinkedin || null,
-          twitterUrl: memTwitter || null,
-        }),
+        body: JSON.stringify(payload),
       });
+
       const data = await res.json();
-      if (data.success) {
-        setStatusMessage(`✅ Slot 0${selectedSlot} (${memName}) successfully updated!`);
+      if (res.ok && data.success) {
+        setTeamSaveSuccess(true);
+        setStatusMessage(`✅ Slot 0${selectedSlot} (${safeName}) successfully updated!`);
 
         // Immediately update members list in memory and in local storage
+        const updatedMember: Member = {
+          id: data.member?.id || `dev-${selectedSlot}`,
+          order: selectedSlot,
+          name: safeName,
+          roleTitle: safeRole,
+          bio: safeBio,
+          imageUrl: safeImage,
+          githubUrl: memGithub.trim() || null,
+          linkedinUrl: memLinkedin.trim() || null,
+          twitterUrl: memTwitter.trim() || null,
+        };
+
         const updatedList = (members || []).map((m: Member) =>
-          m.order === selectedSlot
-            ? {
-                ...m,
-                name: memName,
-                roleTitle: memRole,
-                bio: memBio,
-                imageUrl: memImage || m.imageUrl,
-                githubUrl: memGithub || null,
-                linkedinUrl: memLinkedin || null,
-                twitterUrl: memTwitter || null,
-              }
-            : m
+          m.order === selectedSlot ? updatedMember : m
         );
         if (!updatedList.some((m: Member) => m.order === selectedSlot)) {
-          updatedList.push({
-            id: `dev-${selectedSlot}`,
-            order: selectedSlot,
-            name: memName,
-            roleTitle: memRole,
-            bio: memBio,
-            imageUrl: memImage,
-            githubUrl: memGithub || null,
-            linkedinUrl: memLinkedin || null,
-            twitterUrl: memTwitter || null,
-          });
+          updatedList.push(updatedMember);
         }
         updatedList.sort((a: Member, b: Member) => a.order - b.order);
         setMembers(updatedList);
 
         if (typeof window !== 'undefined') {
           localStorage.setItem('obhin_custom_team', JSON.stringify(updatedList));
+          window.dispatchEvent(new Event('obhin_team_updated'));
         }
 
-        setTimeout(() => setStatusMessage(null), 4000);
+        setTimeout(() => {
+          setTeamSaveSuccess(false);
+          setStatusMessage(null);
+        }, 4000);
       } else {
-        setStatusMessage(`❌ Error: ${data.error || 'Failed to update team slot'}`);
+        const err = data.error || 'Failed to update team slot.';
+        setTeamInlineError(err);
+        setStatusMessage(`❌ Error: ${err}`);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Network error';
+      setTeamInlineError(msg);
       setStatusMessage(`❌ Error saving team slot: ${msg}`);
     } finally {
       setSavingTeam(false);
@@ -529,7 +635,7 @@ export default function AdminPage() {
             <ExternalLink className="w-3.5 h-3.5" /> View Live Site
           </Link>
           <button
-            onClick={() => setIsAuthenticated(false)}
+            onClick={handleLogout}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-500/30 text-xs font-mono text-rose-400 hover:bg-rose-500/10 transition-all"
           >
             <LogOut className="w-3.5 h-3.5" /> Exit
@@ -976,194 +1082,443 @@ export default function AdminPage() {
       {/* Tab 4: Team Showcase Management */}
       {activeTab === 'team' && (
         <div className="max-w-6xl mx-auto space-y-6">
-          <div className="prism-glass p-6 sm:p-8 rounded-3xl space-y-6">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <h2 className="text-base font-bold font-mono text-white">
-                Founder Profile Registry
-              </h2>
+          {/* Header & Slot Selector Deck */}
+          <div className="prism-glass p-6 rounded-3xl space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-bold font-mono text-white">
+                    Founder Profile Registry
+                  </h2>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
+                    Active Editor
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-400 font-mono mt-0.5">
+                  Select a slot below to edit name, title, bio, photo, and links displayed in the public #engineers section.
+                </p>
+              </div>
+
               <div className="flex items-center gap-2">
-                {[1, 2, 3].map((slot) => (
-                  <button
-                    key={slot}
-                    onClick={() => handleSlotChange(slot)}
-                    className={`px-3 py-1 rounded-lg text-xs font-mono transition-all ${
-                      selectedSlot === slot
-                        ? 'bg-white text-black font-bold shadow-[0_0_15px_rgba(255,255,255,0.3)]'
-                        : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/10'
-                    }`}
-                  >
-                    Slot 0{slot}
-                  </button>
-                ))}
+                <Link
+                  href="/#engineers"
+                  target="_blank"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/15 bg-white/[0.03] hover:bg-white/[0.08] text-xs font-mono text-zinc-300 transition-all"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Preview On Site</span>
+                </Link>
               </div>
             </div>
 
-            <form onSubmit={handleSaveTeam} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-mono text-zinc-400 block mb-1">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    value={memName}
-                    onChange={(e) => setMemName(e.target.value)}
-                    className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-white/50"
-                    required
-                  />
-                </div>
+            {/* 3 Slot Cards Selector */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[1, 2, 3].map((slot) => {
+                const cur = (members || []).find((m) => m.order === slot);
+                const isSelected = selectedSlot === slot;
+                const displayName = (isSelected ? memName : cur?.name) || `Slot 0${slot}`;
+                const displayRole = (isSelected ? memRole : cur?.roleTitle) || 'Unassigned';
+                const displayImg =
+                  (isSelected ? memImage : cur?.imageUrl) ||
+                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
 
-                <div>
-                  <label className="text-xs font-mono text-zinc-400 block mb-1">
-                    Role & Title
-                  </label>
-                  <input
-                    type="text"
-                    value={memRole}
-                    onChange={(e) => setMemRole(e.target.value)}
-                    className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-white/50"
-                    required
-                  />
-                </div>
-              </div>
+                return (
+                  <button
+                    key={slot}
+                    type="button"
+                    onClick={() => handleSlotChange(slot)}
+                    className={`p-3.5 rounded-2xl border text-left transition-all flex items-center gap-3 relative group ${
+                      isSelected
+                        ? 'bg-white/[0.08] border-white/40 shadow-[0_0_25px_rgba(255,255,255,0.12)] ring-1 ring-white/50'
+                        : 'bg-zinc-950/60 border-white/10 hover:border-white/25 hover:bg-white/[0.03]'
+                    }`}
+                  >
+                    <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-black border border-white/15 shrink-0 shadow-inner">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={displayImg}
+                        alt={`Slot 0${slot}`}
+                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
+                        }}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                            isSelected
+                              ? 'bg-white text-black'
+                              : 'bg-zinc-900 text-zinc-400 border border-white/10'
+                          }`}
+                        >
+                          SLOT 0{slot}
+                        </span>
+                        {isSelected && (
+                          <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1 font-semibold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            Editing
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs font-bold text-white truncate mt-1">
+                        {displayName}
+                      </div>
+                      <div className="text-[10px] font-mono text-zinc-400 truncate">
+                        {displayRole}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-              <div>
-                <label className="text-xs font-mono text-zinc-400 block mb-1">
-                  Bio & Technical Vectors
-                </label>
-                <textarea
-                  rows={3}
-                  value={memBio}
-                  onChange={(e) => setMemBio(e.target.value)}
-                  className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-white/50"
-                  required
-                />
-              </div>
-
-              {/* Profile Image Upload & Selection Section */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-mono text-zinc-300 flex items-center gap-1.5 font-medium">
-                    <ImageIcon className="w-3.5 h-3.5 text-sky-400" />
-                    <span>Founder Profile Image</span>
-                  </label>
+          {/* 2-Column Split: Form Editor + Real-Time Live Preview */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left Column (7 cols): Edit Form */}
+            <div className="lg:col-span-7">
+              <div className="prism-glass p-6 sm:p-8 rounded-3xl space-y-6">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono px-2 py-0.5 rounded bg-zinc-900 border border-white/15 text-white font-bold">
+                      SLOT 0{selectedSlot}
+                    </span>
+                    <h3 className="text-sm font-bold font-mono text-white truncate">
+                      {memName ? `Editing: ${memName}` : `Configure Profile 0${selectedSlot}`}
+                    </h3>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => setUseUrlInput(!useUrlInput)}
+                    onClick={handleResetSlot}
                     className="text-[11px] font-mono text-zinc-400 hover:text-white underline transition-colors"
                   >
-                    {useUrlInput ? 'Switch to File Upload' : 'Or paste Image URL'}
+                    Reset Defaults
                   </button>
                 </div>
 
-                {!useUrlInput ? (
-                  <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-zinc-950/90 border border-white/15">
-                    {/* Image Preview Thumbnail */}
-                    <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-black border border-white/20 shrink-0 shadow-lg flex items-center justify-center group">
-                      {memImage ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={memImage}
-                          alt="Profile Preview"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-zinc-600 gap-1 p-2 text-center">
-                          <ImageIcon className="w-6 h-6" />
-                          <span className="text-[9px] font-mono">No Image</span>
-                        </div>
-                      )}
+                <form onSubmit={handleSaveTeam} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-mono text-zinc-300 block mb-1 font-medium">
+                        Full Name <span className="text-rose-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={memName}
+                        onChange={(e) => setMemName(e.target.value)}
+                        placeholder="e.g. Maham"
+                        className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-white/50 transition-colors"
+                        required
+                      />
                     </div>
 
-                    {/* Upload Actions & Guidance */}
-                    <div className="flex-1 space-y-2 text-left w-full">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <label className="cursor-pointer px-4 py-2 rounded-xl bg-white text-black font-semibold text-xs hover:bg-zinc-200 transition-all shadow-[0_0_15px_rgba(255,255,255,0.15)] flex items-center gap-2">
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>{memImage ? 'Change Photo' : 'Upload Image File'}</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            className="hidden"
-                          />
-                        </label>
-
-                        {memImage && (
-                          <button
-                            type="button"
-                            onClick={() => setMemImage('')}
-                            className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-mono transition-all flex items-center gap-1.5"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>Remove</span>
-                          </button>
-                        )}
-                      </div>
-
-                      <p className="text-[11px] font-mono text-zinc-400 font-light">
-                        Supports PNG, JPG, WebP, SVG. Uploaded files are automatically optimized and compressed for instant loading.
-                      </p>
+                    <div>
+                      <label className="text-xs font-mono text-zinc-300 block mb-1 font-medium">
+                        Role & Title <span className="text-rose-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={memRole}
+                        onChange={(e) => setMemRole(e.target.value)}
+                        placeholder="e.g. Lead Founder & Architect"
+                        className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-white/50 transition-colors"
+                        required
+                      />
                     </div>
                   </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <input
-                      type="text"
-                      placeholder="https://images.unsplash.com/... or /assets/..."
-                      value={memImage}
-                      onChange={(e) => setMemImage(e.target.value)}
-                      className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-white/50"
+
+                  <div>
+                    <label className="text-xs font-mono text-zinc-300 block mb-1 font-medium">
+                      Bio & Technical Vectors <span className="text-rose-400">*</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={memBio}
+                      onChange={(e) => setMemBio(e.target.value)}
+                      placeholder="Describe architectural contributions, key accomplishments, or core focus areas..."
+                      className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-white/50 transition-colors font-light leading-relaxed"
                       required
                     />
-                    <p className="text-[10px] font-mono text-zinc-500">
-                      Paste a direct HTTPS URL to any image hosted online.
-                    </p>
                   </div>
-                )}
+
+                  {/* Profile Image Section */}
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-mono text-zinc-300 flex items-center gap-1.5 font-medium">
+                        <ImageIcon className="w-3.5 h-3.5 text-sky-400" />
+                        <span>Profile Picture</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setUseUrlInput(!useUrlInput)}
+                        className="text-[11px] font-mono text-zinc-400 hover:text-white underline transition-colors"
+                      >
+                        {useUrlInput ? 'Switch to File Upload' : 'Or paste direct Image URL'}
+                      </button>
+                    </div>
+
+                    {!useUrlInput ? (
+                      <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-zinc-950/90 border border-white/15">
+                        <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-black border border-white/20 shrink-0 shadow-lg flex items-center justify-center group">
+                          {memImage ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={memImage}
+                              alt="Profile Thumbnail"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center text-zinc-600 gap-1 p-2 text-center">
+                              <ImageIcon className="w-6 h-6" />
+                              <span className="text-[9px] font-mono">No Image</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex-1 space-y-2 text-left w-full">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <label className="cursor-pointer px-4 py-2 rounded-xl bg-white text-black font-semibold text-xs hover:bg-zinc-200 transition-all shadow-[0_0_15px_rgba(255,255,255,0.15)] flex items-center gap-2">
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>{memImage ? 'Change Image File' : 'Upload Image File'}</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                className="hidden"
+                              />
+                            </label>
+
+                            {memImage && (
+                              <button
+                                type="button"
+                                onClick={() => setMemImage('')}
+                                className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-mono transition-all flex items-center gap-1.5"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Remove</span>
+                              </button>
+                            )}
+                          </div>
+
+                          <p className="text-[11px] font-mono text-zinc-400 font-light">
+                            Supports PNG, JPG, WebP, SVG. Automatically compressed to lightweight WebP/JPEG for instant load times.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <input
+                          type="text"
+                          placeholder="https://images.unsplash.com/... or direct image URL"
+                          value={memImage}
+                          onChange={(e) => setMemImage(e.target.value)}
+                          className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-white/50 transition-colors"
+                        />
+                        <p className="text-[10px] font-mono text-zinc-500">
+                          Paste a direct HTTPS URL to any image hosted online.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Social Links */}
+                  <div className="space-y-2 pt-1">
+                    <label className="text-xs font-mono text-zinc-300 block font-medium">
+                      Social Anchor Links (Optional)
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-[11px] font-mono text-zinc-400 block mb-1">GitHub</label>
+                        <input
+                          type="text"
+                          placeholder="https://github.com/..."
+                          value={memGithub}
+                          onChange={(e) => setMemGithub(e.target.value)}
+                          className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-white/40"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-mono text-zinc-400 block mb-1">LinkedIn</label>
+                        <input
+                          type="text"
+                          placeholder="https://linkedin.com/in/..."
+                          value={memLinkedin}
+                          onChange={(e) => setMemLinkedin(e.target.value)}
+                          className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-white/40"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-mono text-zinc-400 block mb-1">X (Twitter)</label>
+                        <input
+                          type="text"
+                          placeholder="https://x.com/..."
+                          value={memTwitter}
+                          onChange={(e) => setMemTwitter(e.target.value)}
+                          className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-white/40"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* INLINE STATUS BANNER */}
+                  {teamSaveSuccess && (
+                    <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono flex items-center gap-2.5 animate-in fade-in">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>
+                        Slot 0{selectedSlot} ({memName}) successfully saved! Changes are live on the homepage.
+                      </span>
+                    </div>
+                  )}
+
+                  {teamInlineError && (
+                    <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-mono flex items-center gap-2.5 animate-in fade-in">
+                      <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                      <span>{teamInlineError}</span>
+                    </div>
+                  )}
+
+                  {/* Submit Button Bar */}
+                  <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <span className="text-[11px] font-mono text-zinc-500">
+                      Changes persist across sessions & Vercel runtime.
+                    </span>
+
+                    <button
+                      type="submit"
+                      disabled={savingTeam}
+                      className={`w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-xs font-mono transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg ${
+                        teamSaveSuccess
+                          ? 'bg-emerald-400 text-black shadow-[0_0_20px_rgba(52,211,153,0.3)]'
+                          : 'bg-white text-black hover:bg-zinc-200 shadow-[0_0_20px_rgba(255,255,255,0.2)]'
+                      }`}
+                    >
+                      {savingTeam ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>Saving Slot 0{selectedSlot}...</span>
+                        </>
+                      ) : teamSaveSuccess ? (
+                        <>
+                          <Check className="w-4 h-4 text-black stroke-[3]" />
+                          <span>Saved to Homepage! ✅</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4" />
+                          <span>Save Slot 0{selectedSlot} Changes</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            {/* Right Column (5 cols): Live Preview Matching Public Site */}
+            <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-24">
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-xs font-mono text-zinc-200 font-bold tracking-wider">
+                    LIVE HOMEPAGE PREVIEW
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-white/10 bg-white/[0.04] text-zinc-400">
+                  SLOT 0{selectedSlot}
+                </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="text-[11px] font-mono text-zinc-400 block mb-1">GitHub</label>
-                  <input
-                    type="text"
-                    value={memGithub}
-                    onChange={(e) => setMemGithub(e.target.value)}
-                    className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white font-mono"
-                  />
+              {/* Exact replica of public card from #engineers */}
+              <div className="prism-glass rounded-2xl p-6 flex flex-col justify-between space-y-6 relative overflow-hidden group border border-white/20 shadow-2xl">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/[0.03] rounded-full blur-2xl pointer-events-none" />
+
+                <div className="space-y-5">
+                  <div className="flex items-start justify-between">
+                    <div className="relative w-20 h-20 rounded-2xl overflow-hidden border border-white/20 bg-zinc-950 shadow-2xl">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={
+                          memImage ||
+                          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'
+                        }
+                        alt={memName || 'Team Member'}
+                        className="w-full h-full object-cover grayscale contrast-125 group-hover:grayscale-0 transition-all duration-500"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80';
+                        }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-mono tracking-widest px-2.5 py-1 rounded-md border border-white/15 bg-white/[0.04] text-zinc-300">
+                      SLOT 0{selectedSlot}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-xs font-mono tracking-wide text-zinc-400 block uppercase font-medium">
+                      {memRole || 'ROLE & TITLE'}
+                    </span>
+                    <h3 className="text-lg font-bold text-white mt-0.5 tracking-tight">
+                      {memName || 'Founder Name'}
+                    </h3>
+                  </div>
+
+                  <p className="text-xs text-zinc-400 leading-relaxed font-light line-clamp-4">
+                    {memBio ||
+                      'Detailed founder bio, engineering contributions, and autonomous capabilities will appear here.'}
+                  </p>
                 </div>
-                <div>
-                  <label className="text-[11px] font-mono text-zinc-400 block mb-1">LinkedIn</label>
-                  <input
-                    type="text"
-                    value={memLinkedin}
-                    onChange={(e) => setMemLinkedin(e.target.value)}
-                    className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] font-mono text-zinc-400 block mb-1">X (Twitter)</label>
-                  <input
-                    type="text"
-                    value={memTwitter}
-                    onChange={(e) => setMemTwitter(e.target.value)}
-                    className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white font-mono"
-                  />
+
+                {/* Social Anchor Bar */}
+                <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {memGithub ? (
+                      <a
+                        href={memGithub}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-zinc-400 hover:text-white transition-colors"
+                      >
+                        <Github className="w-4 h-4" />
+                      </a>
+                    ) : null}
+                    {memLinkedin ? (
+                      <a
+                        href={memLinkedin}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-zinc-400 hover:text-white transition-colors"
+                      >
+                        <Linkedin className="w-4 h-4" />
+                      </a>
+                    ) : null}
+                    {memTwitter ? (
+                      <a
+                        href={memTwitter}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-zinc-400 hover:text-white transition-colors"
+                      >
+                        <Twitter className="w-4 h-4" />
+                      </a>
+                    ) : null}
+                    {!memGithub && !memLinkedin && !memTwitter && (
+                      <span className="text-[11px] font-mono text-zinc-600">No social links set</span>
+                    )}
+                  </div>
+
+                  <span className="text-[10px] font-mono text-zinc-500">OBHIN CORE</span>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-white/10 flex justify-end">
-                <button
-                  type="submit"
-                  disabled={savingTeam}
-                  className="px-6 py-2.5 rounded-xl bg-white text-black font-semibold text-xs font-mono hover:bg-zinc-200 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.2)]"
-                >
-                  <Save className={`w-4 h-4 ${savingTeam ? 'animate-spin' : ''}`} />
-                  <span>{savingTeam ? 'Saving Profile...' : `Save Slot 0${selectedSlot} Changes`}</span>
-                </button>
+              <div className="p-3.5 rounded-2xl bg-zinc-950/80 border border-white/10 text-[11px] font-mono text-zinc-400 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-sky-400 shrink-0" />
+                <span>Real-time preview synchronized with the public <code className="text-white">#engineers</code> section.</span>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

@@ -16,9 +16,45 @@ interface Member {
   twitterUrl?: string | null;
 }
 
+const DEFAULT_FALLBACK_TEAM: Member[] = [
+  {
+    id: 'dev-1',
+    order: 1,
+    name: 'Lead Systems Architect',
+    roleTitle: 'Core Architecture & Autonomous Conductor',
+    bio: 'Architected the OBHIN decoupled singularity, multi-agent interceptor pipelines, and high-concurrency execution loops.',
+    imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
+    githubUrl: 'https://github.com',
+    linkedinUrl: 'https://linkedin.com',
+    twitterUrl: 'https://x.com',
+  },
+  {
+    id: 'dev-2',
+    order: 2,
+    name: 'Cryptographic Security Lead',
+    roleTitle: 'Zero-Trust Vault & Cloud Infrastructure',
+    bio: 'Designed the AES-256-GCM BYOK token shielding protocol, low-latency API proxy routing, and zero-plaintext storage.',
+    imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80',
+    githubUrl: 'https://github.com',
+    linkedinUrl: 'https://linkedin.com',
+    twitterUrl: 'https://x.com',
+  },
+  {
+    id: 'dev-3',
+    order: 3,
+    name: 'Creative Technologist',
+    roleTitle: '3D Prismatic UI & Real-Time Interaction',
+    bio: 'Engineered the WebGL Prismatic Crystal Core, monochrome cyber-minimalist glass tokens, and dynamic camera response.',
+    imageUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=600&q=80',
+    githubUrl: 'https://github.com',
+    linkedinUrl: 'https://linkedin.com',
+    twitterUrl: 'https://x.com',
+  },
+];
+
 export function TeamSection() {
-  const [team, setTeam] = useState<Member[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [team, setTeam] = useState<Member[]>(DEFAULT_FALLBACK_TEAM);
+  const [loading, setLoading] = useState(false);
 
   const fetchTeam = async () => {
     try {
@@ -55,7 +91,44 @@ export function TeamSection() {
   };
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('obhin_custom_team');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setTeam(parsed.sort((a: Member, b: Member) => a.order - b.order));
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+
     fetchTeam();
+
+    const handleSync = () => {
+      if (typeof window !== 'undefined') {
+        const cached = localStorage.getItem('obhin_custom_team');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setTeam(parsed.sort((a: Member, b: Member) => a.order - b.order));
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('obhin_team_updated', handleSync);
+    return () => {
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('obhin_team_updated', handleSync);
+    };
   }, []);
 
   return (
