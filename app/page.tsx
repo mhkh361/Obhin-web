@@ -6,6 +6,7 @@ import { ApiKeyManager } from '@/components/hub/ApiKeyManager';
 import { DownloadMatrix } from '@/components/sections/DownloadMatrix';
 import { TeamSection } from '@/components/sections/TeamSection';
 import { PrivacySection } from '@/components/sections/PrivacySection';
+import { CreditsSection } from '@/components/sections/CreditsSection';
 
 export default function HomePage() {
   return (
@@ -32,6 +33,9 @@ export default function HomePage() {
 
         {/* [06] Privacy & Trust Protocol (Zero-PII Declaration) */}
         <PrivacySection />
+
+        {/* [07] Open-Source Credits & Attributions */}
+        <CreditsSection />
       </div>
     </div>
   );

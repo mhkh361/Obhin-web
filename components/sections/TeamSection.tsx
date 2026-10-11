@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Github, Linkedin, Twitter, Sparkles, Shield, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { getAssetUrl } from '@/lib/assetUrl';
 
 interface Member {
   id: string;
@@ -216,7 +217,7 @@ export function TeamSection() {
               <div className="flex items-start justify-between">
                 <div className="relative w-20 h-20 rounded-2xl overflow-hidden border border-white/20 bg-zinc-950 shadow-2xl group-hover:border-white/50 transition-all">
                   <img
-                    src={member.imageUrl}
+                    src={getAssetUrl(member.imageUrl)}
                     alt={member.name}
                     className="w-full h-full object-cover grayscale contrast-125 group-hover:grayscale-0 transition-all duration-500"
                     onError={(e) => {

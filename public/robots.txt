@@ -1,0 +1,8 @@
+# OBHIN AI Robots Directive
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: https://obhin-web.vercel.app/sitemap.xml
+

@@ -30,9 +30,13 @@ import {
   Linkedin,
   Twitter,
   Sparkles,
+  Heart,
+  Globe,
+  FileText,
 } from 'lucide-react';
 import Link from 'next/link';
 import { formatSocialUrl } from '@/components/sections/TeamSection';
+import { CreditAttribution } from '@/app/api/credits/route';
 
 interface Member {
   id: string;
@@ -84,7 +88,7 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [activeTab, setActiveTab] = useState<'analytics' | 'skills' | 'apihub' | 'team'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'skills' | 'apihub' | 'team' | 'credits'>('analytics');
 
   // Data states
   const [stats, setStats] = useState<TrafficStats | null>(null);
@@ -92,6 +96,15 @@ export default function AdminPage() {
   const [providers, setProviders] = useState<ApiProviderItem[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [selectedSlot, setSelectedSlot] = useState(1);
+  const [credits, setCredits] = useState<CreditAttribution[]>([]);
+
+  // Credits Form state
+  const [creditTitle, setCreditTitle] = useState('');
+  const [creditAuthor, setCreditAuthor] = useState('');
+  const [creditSourceType, setCreditSourceType] = useState<'github' | 'website' | 'doc'>('github');
+  const [creditUrl, setCreditUrl] = useState('');
+  const [creditDesc, setCreditDesc] = useState('');
+  const [savingCredit, setSavingCredit] = useState(false);
 
   // Status message
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -224,21 +237,38 @@ export default function AdminPage() {
 
   const fetchAllData = async () => {
     try {
-      const [analyticsRes, skillsRes, provRes, teamRes] = await Promise.all([
+      const [analyticsRes, skillsRes, provRes, teamRes, creditsRes] = await Promise.all([
         fetch('/api/analytics'),
         fetch('/api/skills'),
         fetch('/api/api-hub'),
         fetch('/api/team'),
+        fetch('/api/credits'),
       ]);
 
       const analyticsData = await analyticsRes.json();
       const skillsData = await skillsRes.json();
       const provData = await provRes.json();
       const teamData = await teamRes.json();
+      const creditsData = await creditsRes.json();
 
       if (analyticsData.stats) setStats(analyticsData.stats);
       if (skillsData.skills) setSkills(skillsData.skills);
       if (provData.providers) setProviders(provData.providers);
+      if (creditsData.credits) {
+        let finalCredits = creditsData.credits;
+        if (typeof window !== 'undefined') {
+          const cachedCredits = localStorage.getItem('obhin_custom_credits');
+          if (cachedCredits) {
+            try {
+              const parsed = JSON.parse(cachedCredits);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                finalCredits = parsed;
+              }
+            } catch {}
+          }
+        }
+        setCredits(finalCredits);
+      }
       if (teamData.members) {
         let finalMembers = teamData.members;
         if (typeof window !== 'undefined') {
@@ -547,6 +577,63 @@ export default function AdminPage() {
     }
   };
 
+  const handleAddCredit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingCredit(true);
+    try {
+      const cleanUrl = creditUrl.trim().startsWith('http') ? creditUrl.trim() : `https://${creditUrl.trim()}`;
+      const payload = {
+        title: creditTitle.trim(),
+        author: creditAuthor.trim(),
+        sourceType: creditSourceType,
+        url: cleanUrl,
+        description: creditDesc.trim(),
+      };
+
+      const res = await fetch('/api/credits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        const updated = [...credits.filter((c) => c.id !== data.credit.id), data.credit];
+        setCredits(updated);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('obhin_custom_credits', JSON.stringify(updated));
+          window.dispatchEvent(new Event('obhin_credits_updated'));
+        }
+        setStatusMessage(`Open-Source Credit "${creditTitle}" added successfully!`);
+        setCreditTitle('');
+        setCreditAuthor('');
+        setCreditUrl('');
+        setCreditDesc('');
+        setTimeout(() => setStatusMessage(null), 3000);
+      }
+    } catch {
+      setStatusMessage('Error adding credit.');
+    } finally {
+      setSavingCredit(false);
+    }
+  };
+
+  const handleDeleteCredit = async (id: string) => {
+    try {
+      await fetch(`/api/credits?id=${id}`, { method: 'DELETE' });
+      const updated = credits.filter((c) => c.id !== id);
+      setCredits(updated);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('obhin_custom_credits', JSON.stringify(updated));
+        window.dispatchEvent(new Event('obhin_credits_updated'));
+      }
+      setStatusMessage('Credit attribution removed.');
+      setTimeout(() => setStatusMessage(null), 3000);
+    } catch {
+      setStatusMessage('Error deleting credit.');
+    }
+  };
+
   // Login Gate
   if (!isAuthenticated) {
     return (
@@ -703,6 +790,18 @@ export default function AdminPage() {
         >
           <Users className="w-3.5 h-3.5" />
           <span>Team Showcase</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('credits')}
+          className={`px-4 py-2 rounded-xl text-xs font-mono transition-all flex items-center gap-2 ${
+            activeTab === 'credits'
+              ? 'bg-white text-black font-bold shadow-[0_0_15px_rgba(255,255,255,0.2)]'
+              : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/10'
+          }`}
+        >
+          <Heart className="w-3.5 h-3.5" />
+          <span>Open-Source Credits</span>
         </button>
       </div>
 
@@ -1526,6 +1625,163 @@ export default function AdminPage() {
                 <Sparkles className="w-4 h-4 text-sky-400 shrink-0" />
                 <span>Real-time preview synchronized with the public <code className="text-white">#engineers</code> section.</span>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 5: Open-Source & Skill Credits Manager */}
+      {activeTab === 'credits' && (
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Add Credit Form */}
+          <div className="lg:col-span-5">
+            <div className="prism-glass p-6 sm:p-8 rounded-3xl space-y-5">
+              <div className="border-b border-white/10 pb-3">
+                <h3 className="text-sm font-bold font-mono text-white flex items-center gap-2">
+                  <Heart className="w-4 h-4 text-rose-400" />
+                  <span>Register Open-Source Attribution</span>
+                </h3>
+                <p className="text-xs text-zinc-400 font-mono mt-1">
+                  Acknowledge open-source projects, tools, and libraries powering OBHIN.
+                </p>
+              </div>
+
+              <form onSubmit={handleAddCredit} className="space-y-4">
+                <div>
+                  <label className="text-xs font-mono text-zinc-300 block mb-1 font-medium">
+                    Project / Library Title <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={creditTitle}
+                    onChange={(e) => setCreditTitle(e.target.value)}
+                    placeholder="e.g. Lucide Icons"
+                    className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-white/50"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-mono text-zinc-300 block mb-1 font-medium">
+                      Author / Organization <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={creditAuthor}
+                      onChange={(e) => setCreditAuthor(e.target.value)}
+                      placeholder="e.g. Lucide Team"
+                      className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-white/50"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-mono text-zinc-300 block mb-1 font-medium">
+                      Source Type
+                    </label>
+                    <select
+                      value={creditSourceType}
+                      onChange={(e) => setCreditSourceType(e.target.value as 'github' | 'website' | 'doc')}
+                      className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-white/50"
+                    >
+                      <option value="github">GitHub Repo</option>
+                      <option value="website">Official Website</option>
+                      <option value="doc">Documentation</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-mono text-zinc-300 block mb-1 font-medium">
+                    Direct Source URL <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={creditUrl}
+                    onChange={(e) => setCreditUrl(e.target.value)}
+                    placeholder="https://github.com/... or https://..."
+                    className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white font-mono focus:outline-none focus:border-white/50"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-mono text-zinc-300 block mb-1 font-medium">
+                    Description & Usage Note
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={creditDesc}
+                    onChange={(e) => setCreditDesc(e.target.value)}
+                    placeholder="Short note on how this library or skill is utilized in OBHIN..."
+                    className="w-full bg-zinc-950 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-white/50 font-light"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={savingCredit}
+                  className="w-full py-2.5 rounded-xl bg-white text-black font-semibold text-xs font-mono hover:bg-zinc-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{savingCredit ? 'Deploying Attribution...' : 'Add Open-Source Credit'}</span>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {/* Credits List */}
+          <div className="lg:col-span-7 space-y-4">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs font-mono text-zinc-400">
+                ACTIVE OPEN-SOURCE CREDITS ({credits.length})
+              </span>
+              <span className="text-[10px] font-mono text-zinc-500">
+                Synchronized with public homepage
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {credits.map((item) => (
+                <div
+                  key={item.id}
+                  className="prism-glass p-5 rounded-2xl flex items-start justify-between gap-4 border border-white/10 hover:border-white/20 transition-all"
+                >
+                  <div className="space-y-1.5 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-sm font-bold text-white truncate">{item.title}</h4>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-white/10 text-zinc-300 uppercase">
+                        {item.sourceType}
+                      </span>
+                      <span className="text-[10px] font-mono text-zinc-400">
+                        by {item.author}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-zinc-400 line-clamp-2 font-light leading-relaxed">
+                      {item.description}
+                    </p>
+
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-[11px] font-mono text-sky-400 hover:text-sky-300 transition-colors"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      <span className="truncate">{item.url}</span>
+                    </a>
+                  </div>
+
+                  <button
+                    onClick={() => handleDeleteCredit(item.id)}
+                    className="p-2 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors shrink-0"
+                    title="Remove Credit Attribution"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         </div>

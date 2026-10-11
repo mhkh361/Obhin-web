@@ -1,0 +1,51 @@
+[
+  {
+    "id": "credit-lucide",
+    "title": "Lucide Icons",
+    "author": "Lucide Contributors",
+    "sourceType": "github",
+    "url": "https://github.com/lucide-icons/lucide",
+    "description": "Clean, lightweight, and customizable SVG icon system powering the entire OBHIN Cyber-Minimalist interface."
+  },
+  {
+    "id": "credit-threejs",
+    "title": "Three.js / WebGL",
+    "author": "Mr.doob & Community",
+    "sourceType": "github",
+    "url": "https://github.com/mrdoob/three.js",
+    "description": "JavaScript 3D library driving the WebGL Prismatic Crystal Core and real-time interactive canvas."
+  },
+  {
+    "id": "credit-nextjs",
+    "title": "Next.js & React 18",
+    "author": "Vercel",
+    "sourceType": "website",
+    "url": "https://nextjs.org",
+    "description": "High-performance React framework for hybrid static & serverless rendering with zero runtime latency."
+  },
+  {
+    "id": "credit-tailwind",
+    "title": "Tailwind CSS",
+    "author": "Tailwind Labs",
+    "sourceType": "website",
+    "url": "https://tailwindcss.com",
+    "description": "Utility-first CSS engine powering the obsidian glass tokens, refraction borders, and cybernetic glows."
+  },
+  {
+    "id": "credit-semgrep",
+    "title": "Semgrep AST Engine",
+    "author": "Semgrep",
+    "sourceType": "github",
+    "url": "https://github.com/semgrep/semgrep",
+    "description": "Static analysis engine referenced in the Zero-Day AST security auditor skill pipeline."
+  },
+  {
+    "id": "credit-biome",
+    "title": "Biome Formatter & Linter",
+    "author": "Biomejs Team",
+    "sourceType": "doc",
+    "url": "https://biomejs.dev",
+    "description": "Ultra-fast toolchain referenced for clean architectural patterns, linter checks, and code formatting."
+  }
+]
+
